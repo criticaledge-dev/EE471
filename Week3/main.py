@@ -2,6 +2,7 @@ from custom_classes import Book, DVD, LibraryCollection
 
 
 def main():
+    """Demonstrate the functionality of the MediaItem, Book, DVD, and LibraryCollection classes."""
     collection = LibraryCollection()
     print("Available titles in the empty library:")
     print(collection.list_available())
