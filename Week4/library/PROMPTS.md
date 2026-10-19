@@ -207,3 +207,121 @@ komutunu açıkla.
 - Route'ların model metotlarını ve modelden dönen mesajları kullandığı, DVD uyarısının korunduğu ve import sırasında sunucu başlamadığı test edildi.
 - Değiştirilmemiş `main.py` yeniden çalıştırıldı; gösterim başarıyla tamamlandı. ID 3 silindikten sonra yeni ID 4 oldu; hatalı güncellemenin nesneyi değiştirmediği ve DVD uyarısının dönüş mesajında bulunduğu tekrar doğrulandı.
 - `git diff --check` hata vermedi. Git durumunda yalnızca `Week4/library` değişiklikleri var.
+
+## Section 2 Part 4 — Kullanıcı istemi
+
+```text
+Yalnızca Week4/library içinde çalış.
+Önce mevcut app.py, custom_classes.py, README.md ve testleri oku.
+
+Section 2 Part 4: Mevcut Flask REST API'ye web arayüzü ekle.
+
+Tasarım referansı: Week4/design/library.png
+Dosyayı incele; görünümü buna göre oluştur.
+
+Dosyalar:
+- templates/index.html
+- static/style.css
+- static/script.js
+- app.py içine GET / ekleyerek index.html'i render et.
+
+Mevcut API endpoint'lerini, durum kodlarını ve model kurallarını koru.
+Sayfa http://127.0.0.1:5000 üzerinden açılsın.
+
+Arayüz:
+1. Kitap/DVD listesi:
+   title, author, type, page_count veya duration ve müsaitlik etiketi.
+2. Her öğede Checkout/Return, düzenleme ve silme butonları.
+3. Ekleme/düzenleme formu:
+   title, author, type ve türe göre page_count veya duration.
+4. Available only filtresi ve All / Book / DVD tür filtresi.
+5. Boş liste mesajı, yükleniyor durumu, hata ve başarı mesajları.
+
+API bağlantısı:
+- Listeyi GET /api/items ile yükle.
+- Filtreleri API query parametrelerine çevir.
+- Oluşturmayı POST, düzenlemeyi PATCH ile yap.
+- Düzenlemede type seçicisini devre dışı bırak;
+  id, type ve is_available alanlarını güncelleme gövdesine koyma.
+- Checkout/Return için mevcut POST endpoint'lerini kullan.
+- Silmede DELETE endpoint'ini kullan.
+- Başarılı değişiklikten sonra mevcut filtrelerle listeyi yeniden yükle.
+- DELETE 204 yanıtında response.json() çağırma.
+
+Hata yönetimi:
+- API'nin error alanındaki mesajı sayfadaki hata alanında göster.
+- Ödünçteki öğede silme butonu tıklanabilir kalsın:
+  kullanıcı silmeyi deneyince sunucunun 409 mesajı gösterilsin.
+- İş kurallarını JavaScript'te yeniden uygulama.
+- Ağ hatalarını da anlaşılır şekilde göster.
+- İstek sürerken ilgili butonları devre dışı bırak;
+  başarı veya hata sonrasında yeniden etkinleştir.
+- Hata olursa formdaki kullanıcı girdilerini koru.
+
+Görünüm:
+- Ortalanmış, maksimum genişliği sınırlı bir sayfa oluştur.
+- Masaüstünde solda liste, sağda form olsun.
+- Dar ekranlarda tek sütuna geç.
+- Uzun başlıklar ve hata mesajları yatay taşma oluşturmasın.
+- Kullanıcı verilerini DOM'a textContent ile yerleştir;
+  kullanıcı girdilerini innerHTML içine ekleme.
+- Form alanlarına label, ikon butonlarına erişilebilir ad ekle.
+
+Belgeler:
+- Bu istemi PROMPTS.md'ye kaydet.
+- Gerçekten tespit edip düzelttiğin hataları ayrıca kaydet.
+- Henüz iki hata bulunmadıysa örnek hata uydurma;
+  manuel inceleme sırasında tamamlamak üzere belirt.
+- README'ye arayüz kullanımını ekle.
+
+Mevcut testleri çalıştır. Ana sayfa ve statik dosyaların
+sunulmasını da doğrula.
+Tarayıcı kontrolü yapabiliyorsan yap; yapamıyorsan açıkça belirt.
+
+Commit/push yapma.
+Sonunda değişiklikleri, test sonuçlarını ve manuel kontrol
+gerektiren noktaları özetle.
+```
+
+### Part 4 uygulama ve doğrulama
+
+- API, model, README ve testler okundu; `Week4/design/library.png` görseli incelendi. Açık gri zemin, lacivert metinler, beyaz kart/form panelleri, mavi butonlar ve durum etiketleri referans alındı.
+- `templates/index.html`, `static/style.css`, `static/script.js` eklendi. `app.py` içine yalnızca HTML için `render_template` import'u ve GET `/` eklendi. Model, başlangıç öğeleri ve mevcut API metotları/durum kodları değiştirilmedi.
+- Liste ve filtreler API üzerinden çalışıyor. Ekleme POST, düzenleme PATCH, silme DELETE; checkout/iade mevcut POST endpoint'lerini kullanıyor. Düzenleme gövdesinde salt okunur alanlar bulunmuyor; tür seçicisi kilitleniyor. İş kuralları sunucuda kaldı.
+- Kullanıcı metinleri `textContent` ile yerleştiriliyor; kartlar statik template'ten kopyalanıyor. Sunucu hata mesajları görünür; ödünçteki öğenin silme butonu istek dışında etkin. Ağ hataları, bekleme/boş liste, başarı mesajları ve hata sonrası form girdilerinin korunması uygulandı. Başarılı değişiklik sonrası aynı filtrelerle liste yenileniyor.
+- Mevcut 24 Python testi ve eklenen ana sayfa/statik dosya kontrolleriyle toplam 26 Python testi geçti. JavaScript sözdizimi kontrolü ve taklit DOM/API ile 7 etkileşim testi geçti. 204 gövdesini JSON okumama, 409 gösterimi, PATCH alanları, filtreleri koruma, metin güvenliği, bekleme sırasında kilitleme ve hata sonrası devam etme kontrol edildi.
+- Kullanılabilir tarayıcı kontrol aracı bulunmadı; gerçek tarayıcıda görsel/etkileşim kontrolü yapılmadı. Masaüstü/dar ekran, uzun metinler, klavye odağı ve gerçek ağ kesintisi manuel inceleme gerektirir.
+- Yalnızca `Week4/library` içinde dosyalar değiştirildi. Commit/push yapılmadı.
+
+### Part 4 — Gerçek hata ve düzeltme kaydı
+
+Part 4'ün ilk uygulama aşamasındaki inceleme ve otomatik testlerde iki gerçek hata tespit edilmemişti. Yeni özelliklerin gereksinime uygun uygulanması hata düzeltmesi olarak sayılmadı. Sonraki gözden geçirmede aşağıdaki iki hata ek testlerle yeniden üretildi ve düzeltildi.
+
+| Bulunan gerçek hata | Tekrar üretme adımları | Yapılan düzeltme | Doğrulama |
+| --- | --- | --- | --- |
+| Başarılı oluşturma sonrasında liste isteği başarısız olursa yeniden gönderim ikinci POST yapıyordu. | Formu doldur; POST 201 döndürsün, takip eden GET ağ hatası versin; formu yeniden gönder. | POST yanıtındaki ID, liste isteğinden önce form durumuna kaydediliyor ve form düzenleme moduna alınıyor. Girdiler korunuyor; sonraki gönderim yeni POST yerine mevcut ID'ye PATCH yapıyor. Liste başarıyla yüklenirse form normal şekilde sıfırlanıyor. | `successful create followed by failed reload cannot create a duplicate on retry` testi düzeltme öncesinde `POST !== PATCH` ile başarısız oldu; düzeltme sonrasında geçti. Yalnızca bir POST gönderildiği, girdilerin korunduğu, türün kilitli ve Save/Cancel butonlarının etkin olduğu kontrol edildi. |
+| Filtre isteği başarısız olduğunda eski kartlar ve sayaç yeni seçili filtre altında kalıyordu. | All görünümünde Book/DVD kartlarını yükle; DVD filtresine geçerken GET ağ hatası versin. | Yeni liste isteğinin başlangıcında önceki kartlar ve sayaç temizleniyor. Hata halinde yükleniyor durumu kapanıyor, hata gösteriliyor; yanlış filtreye ait kartlar gösterilmiyor. | `failed filter request cannot leave old items under the newly selected filter` testi düzeltme öncesinde eski 2 kartın kalması nedeniyle başarısız oldu; düzeltme sonrasında geçti. Refresh ile aynı DVD filtresinin başarıyla yüklenmesi ve butonların etkinleşmesi doğrulandı. |
+
+### Part 4 gözden geçirme istemi
+
+```text
+Yalnızca Week4/library içindeki Part 4 kodunu gözden geçir.
+Mevcut API sözleşmesiyle karşılaştır; hata yönetimi,
+204 yanıtı, filtreler, düzenleme ve istek sonrası buton
+durumlarını incele.
+
+Gerçek hata bulursan düzelt, uygun kontrolü çalıştır ve
+PROMPTS.md'ye önceki davranışı, düzeltmeyi ve doğrulamayı yaz.
+Hata yoksa açıkça belirt; iki hata şartını doldurmak için
+hata veya geçmiş düzeltme uydurma.
+
+Section 2 kapsamında belgelenmiş gerçek düzeltmelerin
+sayısını bildir. Commit/push yapma.
+```
+
+### Gözden geçirme sonucu
+
+- Section 2 kapsamında bu `library/PROMPTS.md` içinde yeniden üretimi ve doğrulaması belgelenmiş gerçek hata düzeltmesi sayısı **2**. İkisi de bu gözden geçirmede bulundu; Part 2/3 gereksinim uygulamaları ve yeni özellikler bu sayıya eklenmedi.
+- API sözleşmesi, endpoint'ler, durum kodları ve model kuralları değiştirilmedi. Hatasız çalışan 204 gövdesini JSON okumama, filtre query parametreleri, PATCH gövdesinden salt okunur alanları çıkarma ve sunucu hata mesajını gösterme davranışları korundu.
+- JavaScript sözdizimi kontrolü, 9 JavaScript etkileşim testi ve 26 Python testi geçti. Yeni testler önce mevcut kod üzerinde başarısız çalıştırılarak sorunlar doğrulandı; düzeltmelerden sonra geçti. 409 ve kaydetme hatası sonrasında butonların yeniden etkinleşmesi, düzenlemede türün kilitli kalması da kontrol edildi.
+- Gerçek tarayıcı kontrolü yapılmadı; JavaScript etkileşim testleri taklit DOM/API kullanır. README yeni kurtarma davranışı ve güncel test sayısı ile eşitlendi. Yalnızca `Week4/library` değiştirildi. Commit/push yapılmadı.

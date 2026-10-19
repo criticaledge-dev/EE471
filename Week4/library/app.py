@@ -1,6 +1,6 @@
 """HTTP/JSON adapter for the in-memory library models."""
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, render_template, request
 from werkzeug.exceptions import HTTPException
 
 from custom_classes import Book, DVD, ItemNotFoundError, ItemStateError, LibraryCollection
@@ -11,6 +11,12 @@ collection = LibraryCollection()
 collection.add_item(Book("The Hobbit", "J.R.R. Tolkien", 310))
 collection.add_item(DVD("Inception", "Christopher Nolan", 148))
 collection.add_item(Book("1984", "George Orwell", 328))
+
+
+@app.get("/")
+def index():
+    """Serve the web interface without changing the API contract."""
+    return render_template("index.html")
 
 
 def _json_object():

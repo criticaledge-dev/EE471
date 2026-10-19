@@ -1,6 +1,6 @@
 # Week 4 Library — Flask REST API
 
-`Book`, `DVD` ve `LibraryCollection` modellerini kullanan JSON API. İş kuralları, alan doğrulaması ve atomik güncellemeler `custom_classes.py` içindedir; `app.py` HTTP/JSON çevirisini yapar. Frontend veya veritabanı yoktur.
+`Book`, `DVD` ve `LibraryCollection` modellerini kullanan Flask REST API ve web arayüzü. İş kuralları, alan doğrulaması ve atomik güncellemeler `custom_classes.py` içindedir; `app.py` HTTP/JSON çevirisini yapar. Veritabanı yoktur.
 
 Uygulama boyunca tek bir koleksiyon kullanılır. Başlangıçta iki kitap ve bir DVD eklenir (ID: 1, 2, 3). Veriler bellekte tutulur; süreç yeniden başladığında başlangıç verileri yüklenir. ID'ler aynı koleksiyonun yaşamı boyunca tekrar kullanılmaz.
 
@@ -15,12 +15,23 @@ py -m venv .venv
 .\.venv\Scripts\python.exe app.py
 ```
 
-API adresi: `http://127.0.0.1:5000/api/items`. Sunucuyu `Ctrl+C` ile durdurabilirsiniz. `app.py` import edilince sunucu başlamaz; doğrudan çalıştırılınca başlar.
+Arayüz: <http://127.0.0.1:5000>. API adresi: `http://127.0.0.1:5000/api/items`. Sunucuyu `Ctrl+C` ile durdurabilirsiniz. `app.py` import edilince sunucu başlamaz; doğrudan çalıştırılınca başlar.
+
+## Web arayüzü kullanımı
+
+- Soldaki koleksiyonda başlık, yazar/yönetmen, tür, sayfa/süre ve müsaitlik etiketi gösterilir. All / Book / DVD ve Available only filtreleri birlikte kullanılabilir; filtreleme API üzerinden yapılır.
+- Sağdaki formdan başlık, yazar, tür ve sayfa/süre girerek Add item ile öğe ekleyin. Kalem ikonuyla mevcut öğeyi düzenleyin; tür seçimi kilitlenir. Save changes, yalnızca düzenlenebilir alanları PATCH ile gönderir. Cancel formu temizleyip ekleme moduna döner.
+- Checkout ve Return modelin durum geçişlerini uygular. DVD bakım mesajı dahil sunucunun başarı mesajı sayfada gösterilir.
+- Çöp kutusu ikonuyla silmeyi deneyin. Ödünçteki öğede buton etkin kalır; sunucunun HTTP 409 hata mesajı görünür. Başarılı DELETE'in boş 204 gövdesi JSON olarak okunmaz.
+- Başarılı değişiklikten sonra liste mevcut filtrelerle yeniden yüklenir. Liste isteği başladığında eski kartlar ve sayaç kaldırılır; başarısız filtre isteğinde eski sonuçlar yeni filtre altında gösterilmez. Kaydetme hatasında form girdileri korunur. İstek sırasında kontroller geçici olarak devre dışı kalır; sonrasında tekrar kullanılabilir. Düzenleme modunda tür alanı kilitli kalır.
+- Boş liste, yükleniyor, hata ve başarı alanları bulunur. Ağ hatasında bağlantı mesajı gösterilir; Refresh list ile yeniden deneyebilirsiniz. Başarılı değişiklikten sonraki liste yükleme başarısız olursa başarı ve hata mesajları birlikte görülebilir. Oluşturulan öğenin ID'si hemen form durumuna alınır: girdiler korunur, tür kilitlenir ve Save changes mevcut öğeye PATCH gönderir; ikinci bir öğe oluşturulmaz. Listeyi tekrar yüklemek için Refresh list kullanılabilir.
+- Tasarım `Week4/design/library.png` referansını izler. Masaüstünde liste/form iki sütun, 800 px ve altında tek sütundur. Kart metinleri ve mesajlar satıra bölünür. Başlangıç öğelerinin mevcut müsaitlik durumları değiştirilmemiştir.
 
 ## Endpoint'ler
 
 | Metot | Yol | Davranış | HTTP durumları |
 | --- | --- | --- | --- |
+| GET | `/` | HTML arayüzünü sunar. | 200 |
 | POST | `/api/items` | Book/DVD oluşturur; öğeyi döndürür. | 201, 400 |
 | GET | `/api/items` | Öğelerin JSON listesini döndürür; filtrelenebilir. | 200, 400 |
 | GET | `/api/items/<id>` | Tek öğeyi döndürür. | 200, 404 |
@@ -111,3 +122,14 @@ Invoke-RestMethod -Uri 'http://127.0.0.1:5000/api/items' -Method Post -ContentTy
 ```
 
 Testler model kurallarını ve API'nin başarı/hata sözleşmelerini kontrol eder. Her API testi kendi koleksiyonunu kullanır. `main.py` önceki konsol gösterimini korur. İstemler ve çalışma notları `PROMPTS.md` içindedir.
+
+Node.js varsa arayüzün istek/durum akışı testleri ayrıca çalıştırılabilir:
+
+```powershell
+node --check static/script.js
+node --test test_script.js
+```
+
+Bu testler taklit DOM ve API yanıtları kullanır; gerçek tarayıcı kontrolü değildir. Son kontrolde 26 Python testi ve 9 JavaScript testi geçti; ana sayfa ve statik dosyaların sunulması doğrulandı.
+
+Gerçek tarayıcı kontrol aracı bulunmadığından görsel doğrulama yapılmadı. Manuel olarak masaüstü/dar ekran düzenini, çok uzun metinleri, klavye odağını ve formun küçük ekranda kullanımını kontrol edin. Ayrıca ekleme/düzenleme, filtreler, checkout/iade, ödünçteki öğeyi silerken 409 mesajı ve sunucu kapalıyken ağ hatasını deneyin.

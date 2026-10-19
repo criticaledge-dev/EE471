@@ -35,6 +35,28 @@ class LibraryApiTests(unittest.TestCase):
         self.assertIsInstance(data["error"], str)
         self.assertTrue(data["error"])
 
+    def test_homepage_is_html_and_does_not_change_collection(self):
+        before = [item.to_dict() for item in self.collection.list_items()]
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.mimetype, "text/html")
+        for content in (b'Your library, in one place.', b'id="item-form"',
+                        b'/static/style.css', b'/static/script.js'):
+            self.assertIn(content, response.data)
+        self.assertEqual([item.to_dict() for item in self.collection.list_items()], before)
+
+    def test_stylesheet_and_javascript_are_served(self):
+        for path, mimetypes in (
+            ("/static/style.css", ("text/css",)),
+            ("/static/script.js", ("text/javascript", "application/javascript")),
+        ):
+            with self.subTest(path=path):
+                response = self.client.get(path)
+                self.assertEqual(response.status_code, 200)
+                self.assertIn(response.mimetype, mimetypes)
+                self.assertTrue(response.data)
+                response.close()
+
     def test_initial_data_and_persistence_between_requests(self):
         initial = self.original_collection.list_items()
         self.assertGreaterEqual(len(initial), 3)
