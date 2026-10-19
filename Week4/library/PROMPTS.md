@@ -96,3 +96,114 @@ Sonunda değişiklikleri ve main.py çalıştırma sonucunu özetle.
 - Cygwin Python 3.9.16 ile `python3.9.exe -B -m unittest -v test_custom_classes.py` çalıştırıldı: 8 test ve alt senaryolar geçti.
 - `main.py` başarıyla tamamlandı. İlk ID'ler 1, 2, 3; silinen ID 3; sonraki yeni ID 4 oldu. DVD uyarısının dönen mesajda bulunduğu ve hatalı güncellemenin nesneyi değiştirmediği `True` olarak gösterildi.
 - Bulma, listeleme, düzenleme, ödünç alma/iade ve silme örnekleri çalıştı. `ItemNotFoundError`, `ItemStateError`, `ValueError` örnekleri yakalanıp açıkça yazdırıldı.
+
+## Week 4 Section 2 Part 3 — Kullanıcı istemi
+
+```text
+Yalnızca Week4/library içinde çalış.
+Önce custom_classes.py, main.py ve varsa test dosyalarını oku.
+
+Week 4 Section 2 Part 3 için Flask REST API ekle.
+
+Mimari:
+- app.py oluştur.
+- Tek bir LibraryCollection örneğini uygulama boyunca kullan.
+- Başlangıçta en az 3 öğe ekle; Book ve DVD karışık olsun.
+- requirements.txt içine flask ekle.
+- Route'lar HTTP/JSON ile model metotları arasında çeviri yapsın.
+- İş kuralları ve alan doğrulamaları custom_classes.py içinde kalsın.
+- Gerekli model düzeltmelerini yapabilirsin; mevcut davranışları koru.
+- Veritabanı veya frontend ekleme.
+
+Endpoint'ler:
+
+POST /api/items
+- Book veya DVD oluştur.
+- 201 ve oluşturulan öğenin to_dict() çıktısı.
+- Geçersiz girdide 400.
+
+GET /api/items
+- 200 ve öğelerin sözlüklerinden oluşan JSON listesi.
+- ?available=true veya ?available=false filtresini destekle.
+- ?type=book veya ?type=dvd filtresini destekle.
+- Filtreler birlikte kullanılabilsin.
+- Parametre yoksa ilgili filtre uygulanmasın.
+- Geçersiz filtre değeri için 400.
+
+GET /api/items/<int:item_id>
+- 200 ve öğe; bulunamazsa 404.
+
+PUT /api/items/<int:item_id>
+- Öğenin tüm düzenlenebilir alanlarını zorunlu tut:
+  Book: title, author, page_count.
+  DVD: title, author, duration.
+- Kısmi güncellemeyi kabul etme.
+- 200 ve güncel öğe; hatalı girdide 400, yoksa 404.
+
+PATCH /api/items/<int:item_id>
+- Düzenlenebilir alanların bir kısmını güncelle.
+- 200 ve güncel öğe; hatalı girdide 400, yoksa 404.
+
+DELETE /api/items/<int:item_id>
+- Başarıda 204 ve tamamen boş yanıt gövdesi.
+- Bulunamazsa 404, ödünçteyse 409.
+- 204 yanıtına JSON gövdesi ekleme.
+
+POST /api/items/<int:item_id>/checkout
+POST /api/items/<int:item_id>/return
+- Başarıda 200:
+  {"message": "...", "item": {...}}
+- Modelin döndürdüğü başarı mesajını kullan;
+  DVD bakım uyarısı yanıtta korunsun.
+- Bulunamazsa 404, geçersiz öğe durumunda 409.
+
+JSON sözleşmesi:
+- Oluşturma örneği:
+  {"type":"book","title":"The Hobbit","author":"J.R.R. Tolkien","page_count":310}
+- DVD için page_count yerine duration kullan.
+- Bütün hata yanıtları {"error":"açıklama"} biçiminde olsun.
+- ItemNotFoundError -> 404.
+- ItemStateError -> 409.
+- ValueError ve geçersiz JSON/gövde -> 400.
+- POST oluşturma, PUT ve PATCH gövdeleri JSON nesnesi olmalı.
+- Bozuk JSON ve yanlış Content-Type için HTML hata sayfası döndürme.
+- PUT/PATCH ile id, type veya is_available değiştirilmesin.
+- Bilinmeyen veya türe uygun olmayan alanları reddet.
+- Boş PATCH gövdesini 400 ile reddet.
+- Geçersiz güncelleme öğeyi kısmen değiştirmesin.
+
+Doğrulama:
+- Her endpoint'in başarılı ve ilgili hatalı durumlarını test et.
+- PUT ile PATCH farkını özellikle test et.
+- DELETE yanıtının 204 ve gövdesiz olduğunu doğrula.
+- API testleri model metotlarının yerine iş kurallarını
+  route'larda tekrar yazmaya yol açmasın.
+- main.py gösterimi çalışmaya devam etsin.
+
+PROMPTS.md'ye bu istemi ekle.
+README.md'ye çalıştırma komutlarını, endpoint tablosunu
+ve örnek JSON gövdelerini ekle.
+Uygulamayı doğrudan app.py çalıştırıldığında başlat;
+import edilince sunucu başlatma.
+
+Commit/push yapma.
+Sonunda değişiklikleri, test sonuçlarını ve çalıştırma
+komutunu açıkla.
+```
+
+### Part 3 uygulama notları
+
+- `app.py` içinde bir koleksiyon oluşturulup 2 Book ve 1 DVD ile başlatıldı. Route'lar model metotlarını çağırıp JSON ve HTTP durum kodlarına çeviriyor. Modül import edilince sunucu başlamıyor.
+- Modelde `create_item`, `replace_item` ve `patch_item` eklendi. Oluşturma ve tam güncelleme alan kümeleri, boş kısmi güncelleme ve alan değerleri modelde doğrulanıyor. Mevcut `update_item` davranışı korunuyor; doğrulama/atama kodu ortak metoda taşındı.
+- `ItemNotFoundError`, `ItemStateError`, `ValueError` sırasıyla 404, 409, 400 olarak dönüyor. Bozuk JSON, yanlış Content-Type ve nesne olmayan gövdeler JSON hata yanıtı alıyor. Flask HTTP hataları da JSON'a çevriliyor; HTTP başlıkları korunuyor.
+- `requirements.txt` içine `flask` eklendi. `README.md` oluşturuldu; endpoint tablosu, tam/kısmi güncelleme örnekleri ve PowerShell komutları belgelendi. Yerel `.gitignore` içine `.venv/` eklendi.
+- API testleri izole koleksiyonlarla çalışıyor; route'ların model metotlarına yönlendirdiği ayrıca kontrol ediliyor. Yeni oluşturma ve PUT/PATCH kuralları Flask olmadan model testlerinde de denetleniyor.
+- Frontend/veritabanı eklenmedi. `main.py` değiştirilmedi. Yalnızca `Week4/library` içinde çalışıldı; commit/push yapılmadı.
+
+### Part 3 doğrulama sonucu
+
+- Cygwin Python 3.9.16 ve geçici dizindeki Flask 3.1.3 ile unittest discovery çalıştırıldı: 14 API + 10 model testi, toplam 24 test geçti.
+- Her endpoint'in başarılı ve ilgili hatalı durumları; birlikte filtreleme, PUT/PATCH farkı, yasak alanlar, boolean girdiler, atomik güncelleme, JSON/gövde hataları, 404/409 dönüşümleri ve gövdesiz 204 doğrulandı.
+- Route'ların model metotlarını ve modelden dönen mesajları kullandığı, DVD uyarısının korunduğu ve import sırasında sunucu başlamadığı test edildi.
+- Değiştirilmemiş `main.py` yeniden çalıştırıldı; gösterim başarıyla tamamlandı. ID 3 silindikten sonra yeni ID 4 oldu; hatalı güncellemenin nesneyi değiştirmediği ve DVD uyarısının dönüş mesajında bulunduğu tekrar doğrulandı.
+- `git diff --check` hata vermedi. Git durumunda yalnızca `Week4/library` değişiklikleri var.

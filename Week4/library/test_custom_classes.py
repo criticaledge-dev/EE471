@@ -157,6 +157,35 @@ class LibraryTests(unittest.TestCase):
             importlib.import_module("main")
         self.assertEqual(output.getvalue(), "")
 
+    def test_creation_schema_is_validated_without_http(self):
+        fields = {"type": "book", "title": "Created", "author": "Writer", "page_count": 20}
+        for invalid in ({}, {**fields, "id": 100}, {**fields, "duration": 1},
+                        {**fields, "page_count": True}, {**fields, "type": []}):
+            with self.subTest(fields=invalid), self.assertRaises(ValueError):
+                self.library.create_item(invalid)
+        item = self.library.create_item(fields)
+        self.assertEqual(item.id, 3)
+        self.assertIs(self.library.get_item(item.id), item)
+
+    def test_replace_and_patch_rules_belong_to_model(self):
+        before = self.book.to_dict()
+        for invalid in ({"title": "Partial"}, {}, {"title": "New", "author": "Writer",
+                                                    "page_count": True}):
+            with self.subTest(fields=invalid), self.assertRaises(ValueError):
+                self.library.replace_item(self.book_id, invalid)
+            self.assertEqual(self.book.to_dict(), before)
+        for invalid in ({}, {"title": "New", "item_id": 9},
+                        {"title": "New", "author": ""}):
+            with self.subTest(fields=invalid), self.assertRaises(ValueError):
+                self.library.patch_item(self.book_id, invalid)
+            self.assertEqual(self.book.to_dict(), before)
+        self.assertIs(self.library.patch_item(self.book_id, {"title": "Patched"}), self.book)
+        self.assertEqual(self.book.title, "Patched")
+        self.library.replace_item(self.book_id, {"title": "Replaced", "author": "New",
+                                               "page_count": 50})
+        self.assertEqual((self.book.title, self.book.author, self.book.page_count),
+                         ("Replaced", "New", 50))
+
 
 if __name__ == "__main__":
     unittest.main()

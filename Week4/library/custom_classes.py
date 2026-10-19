@@ -25,6 +25,7 @@ class MediaItem:
     """A validated media item with a collection-assigned, read-only ID."""
 
     _item_type = "media"
+    _field_validators = {"title": _validate_text, "author": _validate_text}
 
     def __init__(self, title, author, is_available=True):
         """Create an item without assigning a collection ID yet."""
@@ -104,6 +105,7 @@ class Book(MediaItem):
     """A media item with a positive integer page count."""
 
     _item_type = "book"
+    _field_validators = {**MediaItem._field_validators, "page_count": _validate_positive_integer}
 
     def __init__(self, title, author, page_count, is_available=True):
         """Create a book and validate its common and book-specific fields."""
@@ -133,6 +135,7 @@ class DVD(MediaItem):
     """A media item with a positive integer duration in minutes."""
 
     _item_type = "dvd"
+    _field_validators = {**MediaItem._field_validators, "duration": _validate_positive_integer}
 
     def __init__(self, title, author, duration, is_available=True):
         """Create a DVD and validate its common and DVD-specific fields."""
@@ -185,6 +188,21 @@ class LibraryCollection:
                     return item
         raise ItemNotFoundError(f"Item not found: {item_id!r}")
 
+    def create_item(self, fields):
+        """Validate a complete book/DVD description, add it and return the item."""
+        if not isinstance(fields, dict):
+            raise ValueError("Item fields must be an object.")
+        item_type = fields.get("type")
+        models = {"book": Book, "dvd": DVD}
+        if not isinstance(item_type, str) or item_type not in models:
+            raise ValueError("type must be 'book' or 'dvd'.")
+        model = models[item_type]
+        required = set(model._field_validators)
+        self._require_fields(fields, required | {"type"})
+        item = model(**{field: fields[field] for field in required})
+        self.add_item(item)
+        return item
+
     def list_items(self, available=None, item_type=None):
         """Return items matching both optional, strictly validated filters."""
         if available is not None and type(available) is not bool:
@@ -206,11 +224,29 @@ class LibraryCollection:
     def update_item(self, item_id, **fields):
         """Validate every requested field before updating and returning the item."""
         item = self.get_item(item_id)
-        validators = {"title": _validate_text, "author": _validate_text}
-        if isinstance(item, Book):
-            validators["page_count"] = _validate_positive_integer
-        elif isinstance(item, DVD):
-            validators["duration"] = _validate_positive_integer
+        return self._apply_update(item, fields)
+
+    def replace_item(self, item_id, fields):
+        """Require every editable field and atomically update an existing item."""
+        item = self.get_item(item_id)
+        self._require_fields(fields, set(item._field_validators))
+        return self._apply_update(item, fields)
+
+    def patch_item(self, item_id, fields):
+        """Atomically apply at least one editable field to an existing item."""
+        item = self.get_item(item_id)
+        if not isinstance(fields, dict) or not fields:
+            raise ValueError("At least one editable field is required.")
+        return self._apply_update(item, fields)
+
+    @staticmethod
+    def _require_fields(fields, required):
+        if not isinstance(fields, dict) or set(fields) != required:
+            raise ValueError("Exactly these fields are required: " + ", ".join(sorted(required)))
+
+    @staticmethod
+    def _apply_update(item, fields):
+        validators = item._field_validators
         for field, value in fields.items():
             if field not in validators:
                 raise ValueError(f"Field cannot be updated for this item: {field}")
