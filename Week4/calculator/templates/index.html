@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EE471 Hesap Makinesi</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+</head>
+<body>
+    <main class="calculator-shell" aria-label="Hesap makinesi">
+        <div class="calculator">
+        <output id="display" class="display" aria-label="Sonuç" aria-live="polite">0</output>
+        <div class="keypad" aria-label="Hesap makinesi tuşları">
+            <button type="button" data-digit="7">7</button>
+            <button type="button" data-digit="8">8</button>
+            <button type="button" data-digit="9">9</button>
+            <button type="button" data-operation="divide" aria-label="Böl">÷</button>
+            <button type="button" data-digit="4">4</button>
+            <button type="button" data-digit="5">5</button>
+            <button type="button" data-digit="6">6</button>
+            <button type="button" data-operation="multiply" aria-label="Çarp">×</button>
+            <button type="button" data-digit="1">1</button>
+            <button type="button" data-digit="2">2</button>
+            <button type="button" data-digit="3">3</button>
+            <button type="button" data-operation="subtract" aria-label="Çıkar">−</button>
+            <button type="button" data-digit="0">0</button>
+            <button type="button" data-digit="." aria-label="Ondalık ayırıcı">.</button>
+            <button type="button" class="equals" data-action="equals" aria-label="Eşittir">=</button>
+            <button type="button" data-operation="add" aria-label="Topla">+</button>
+        </div>
+        </div>
+        <p id="error" class="error" role="alert" hidden></p>
+        <div class="utilities">
+            <button type="button" class="clear" data-action="clear">Temizle (Esc)</button>
+        </div>
+    </main>
+</body>
+</html>
