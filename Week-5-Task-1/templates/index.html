@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Speech Studio — Speech to Text</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script defer src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body>
+  <main>
+    <h1>Speech Studio — Speech to Text</h1>
+    <p>Kısa bir ses kaydını metne dönüştürün.</p>
+    <p class="notice">Yalnızca sıkıştırılmamış PCM WAV: 16-bit, mono, 16 kHz.
+      En fazla 1 MiB ve 30 saniye. Tek seferlik tanıma ilk sessizlikte veya yaklaşık
+      30 saniyede biter; tek bir ifade kullanın. Uzun konuşmaların tamamı işlenmez.</p>
+    <form id="stt-form">
+      <label for="audio">WAV dosyası</label>
+      <input id="audio" name="audio" type="file" accept=".wav,audio/wav" required>
+      <label for="language">Kayıt dili</label>
+      <select id="language" name="language">
+        <option value="en-US">English (en-US)</option>
+        <option value="tr-TR">Türkçe (tr-TR)</option>
+      </select>
+      <button id="transcribe" type="submit">Transcribe</button>
+    </form>
+    <p id="status" role="status" aria-live="polite"></p>
+    <p id="error" role="alert" hidden></p>
+    <section id="result" aria-labelledby="result-heading" hidden>
+      <h2 id="result-heading">Tanınan metin</h2>
+      <p id="transcript"></p>
+      <button id="copy" type="button">Metni kopyala</button>
+      <a id="download" download="transcript.txt">TXT olarak indir</a>
+    </section>
+  </main>
+</body>
+</html>
