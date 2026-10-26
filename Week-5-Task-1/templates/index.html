@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Speech Studio — Text to Speech</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script defer src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body>
+  <main>
+    <h1>Speech Studio — Text to Speech</h1>
+    <p>Metninizi İngilizce veya Türkçe sese dönüştürün.</p>
+    <form id="tts-form">
+      <label for="text">Metin (en fazla 1000 karakter)</label>
+      <textarea id="text" name="text" rows="7" maxlength="1000" required></textarea>
+      <label for="language">Dil</label>
+      <select id="language" name="language">
+        <option value="en-US">English (en-US)</option>
+        <option value="tr-TR">Türkçe (tr-TR)</option>
+      </select>
+      <button id="generate" type="submit">Generate Speech</button>
+    </form>
+    <p id="status" role="status" aria-live="polite"></p>
+    <p id="error" role="alert" hidden></p>
+    <section id="result" aria-label="Üretilen ses" hidden>
+      <audio id="audio" controls></audio>
+      <a id="download" download="speech.wav">WAV dosyasını indir</a>
+    </section>
+  </main>
+</body>
+</html>
