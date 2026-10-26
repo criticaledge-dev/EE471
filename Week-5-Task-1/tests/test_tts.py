@@ -19,7 +19,7 @@ def sample_wav():
     with wave.open(buffer, "wb") as wav:
         wav.setnchannels(1)
         wav.setsampwidth(2)
-        wav.setframerate(24000)
+        wav.setframerate(16000)
         wav.writeframes(b"\x00\x00" * 24)
     return buffer.getvalue()
 
@@ -61,7 +61,7 @@ class TTSTests(unittest.TestCase):
                 config = self.config_factory.return_value
                 self.assertEqual(config.speech_synthesis_voice_name, voice)
                 config.set_speech_synthesis_output_format.assert_called_with(
-                    service.speechsdk.SpeechSynthesisOutputFormat.Riff24Khz16BitMonoPcm)
+                    service.speechsdk.SpeechSynthesisOutputFormat.Riff16Khz16BitMonoPcm)
                 self.config_factory.assert_called_with(subscription='unit-test-placeholder', region='eastus')
                 self.synth_factory.assert_called_with(speech_config=config, audio_config=None)
                 self.dotenv.assert_called_with(dotenv_path=service.ENV_PATH, override=False)

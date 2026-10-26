@@ -7,3 +7,4 @@ uploads/
 recordings/
 generated_audio/
 *.wav
+.test-deps/
