@@ -13,6 +13,7 @@ import wave
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import app as web
 import speech_service as service
+from continuous_mock import wire_continuous
 
 
 def wav_bytes(seconds=1, channels=1, width=2, rate=16000):
@@ -45,7 +46,7 @@ class STTTests(unittest.TestCase):
         self.recognizer_factory = patch.object(service.speechsdk, "SpeechRecognizer").start()
         self.recognizer = self.recognizer_factory.return_value
         self.result = SimpleNamespace(reason=service.speechsdk.ResultReason.RecognizedSpeech, text="Merhaba dünya.")
-        self.recognizer.recognize_once_async.return_value.get.return_value = self.result
+        wire_continuous(self.recognizer, self.stream_factory.return_value, lambda: self.result)
         self.wav = wav_bytes()
 
     def post(self, audio=None, language="en-US", filename="sample.wav"):
@@ -66,7 +67,8 @@ class STTTests(unittest.TestCase):
                 self.audio_factory.assert_called_with(stream=self.stream_factory.return_value)
                 self.stream_factory.return_value.write.assert_called_with(self.wav[44:])
                 self.stream_factory.return_value.close.assert_called()
-                self.recognizer.recognize_once_async.assert_called_with()
+                self.recognizer.start_continuous_recognition_async.assert_called_with()
+                self.recognizer.stop_continuous_recognition_async.assert_called_with()
                 self.dotenv.assert_called_with(dotenv_path=service.ENV_PATH, override=False)
                 self.assertEqual(service.ENV_PATH, Path(service.__file__).resolve().parent / ".env")
 
@@ -85,7 +87,7 @@ class STTTests(unittest.TestCase):
                               (codes.TooManyRequests, "kota"),
                               (codes.ConnectionFailure, "bağlantı"),
                               (codes.ServiceTimeout, "zaman"),
-                              (codes.ServiceError, "iptal")]:
+                              (codes.ServiceError, "hata")]:
             with self.subTest(code=code):
                 self.result.reason = service.speechsdk.ResultReason.Canceled
                 self.result.cancellation_details = SimpleNamespace(error_code=code, error_details="private-sdk-detail")
@@ -171,6 +173,8 @@ class STTTests(unittest.TestCase):
         from unittest.mock import MagicMock
         streams = [MagicMock(), MagicMock()]
         self.stream_factory.side_effect = streams
+        for stream in streams:
+            wire_continuous(self.recognizer, stream, lambda: self.result)
         for _ in range(2):
             self.assertEqual(self.post().status_code, 200)
         for stream in streams:

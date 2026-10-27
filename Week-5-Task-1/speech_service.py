@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from functools import wraps
 from pathlib import Path
 import struct
-from threading import Lock
+from threading import Event, Lock, Thread
 
 import azure.cognitiveservices.speech as speechsdk
 from dotenv import load_dotenv
@@ -13,9 +13,12 @@ from dotenv import load_dotenv
 ENV_PATH = Path(__file__).resolve().parent / ".env"
 VOICES = {"en-US": "en-US-JennyNeural", "tr-TR": "tr-TR-EmelNeural"}
 LANGUAGES = set(VOICES)
+TRANSLATION_PAIRS = {"en-US": "tr", "tr-TR": "en"}
 MAX_FILE_BYTES = 1024 * 1024
 MAX_SECONDS = 30
 SAMPLE_RATE = 16000
+RECOGNITION_TIMEOUT_SECONDS = 60
+SDK_OPERATION_TIMEOUT_SECONDS = 5
 
 # Shared across all clients and both operations in this server process.
 _speech_lock = Lock()
@@ -39,6 +42,10 @@ class ConfigurationError(Exception):
 
 class NoSpeechError(Exception):
     """No recognized speech; never a successful transcript."""
+
+
+class MissingTranslationError(Exception):
+    """Azure returned no usable translation for the requested target."""
 
 
 class SpeechServiceError(Exception):
@@ -114,7 +121,7 @@ def validate_wav(data):
     if not pcm:
         raise InvalidAudioError("WAV dosyası ses örneği içermiyor.")
     if len(pcm) > MAX_SECONDS * SAMPLE_RATE * 2:
-        raise InvalidAudioError("Kayıt en fazla 30 saniye olabilir; tek bir ifade yükleyin.")
+        raise InvalidAudioError("Kayıt en fazla 30 saniye olabilir.")
     return pcm
 
 
@@ -159,53 +166,198 @@ def synthesize_speech(text, language):
         raise SpeechServiceError("Azure ses servisine erişilemedi. Ayarları ve bağlantıyı kontrol edip tekrar deneyin.") from None
 
 
-@serialized_speech
-def transcribe_pcm(pcm, language):
-    """Recognize a validated PCM buffer without a microphone or disk file."""
-    if language not in LANGUAGES:
-        raise InvalidAudioError("Desteklenen diller: en-US ve tr-TR.")
-    settings = load_speech_settings()
-    stream = None
+def _wait_sdk_operation(operation):
+    """Bound SDK future.get() waits, which have no Python timeout argument.
+
+    Only the request flow calls this helper; SDK event callbacks never wait
+    for start/stop. A stuck native future cannot block the request forever.
+    """
+    finished = Event()
+    errors = []
+
+    def run():
+        try:
+            operation().get()
+        except Exception as error:
+            errors.append(error)
+        finally:
+            finished.set()
+
+    Thread(target=run, daemon=True).start()
+    if not finished.wait(SDK_OPERATION_TIMEOUT_SECONDS):
+        raise SpeechServiceError("Azure tanıma işlemi zaman aşımına uğradı; sonuç tamamlanamadı.")
+    if errors:
+        raise SpeechServiceError("Azure tanıma işlemi başlatılamadı veya durdurulamadı.") from None
+
+
+def _continuous_pcm(config, pcm, target_language=None):
+    """Collect final segments until session_stopped; never return partial success."""
+    done = Event()
+    state_lock = Lock()
+    texts, translations, errors = [], [], []
+    session_finished = False
+    accepting = True
+    stream = recognizer = None
     stream_closed = False
+    connections = []
+    primary_error = None
+
+    def guarded(callback):
+        def handle(event):
+            with state_lock:
+                if not accepting:
+                    return
+                try:
+                    callback(event)
+                except (NoSpeechError, MissingTranslationError, SpeechServiceError) as error:
+                    errors.append(error)
+                    done.set()
+                except Exception:
+                    errors.append(SpeechServiceError("Azure tanıma sonucu işlenemedi; kayıt tamamlanamadı."))
+                    done.set()
+        return handle
+
+    def recognized(event):
+        result = event.result
+        if result.reason == speechsdk.ResultReason.NoMatch:
+            return  # Silence between utterances is not the end of the file.
+        expected = (speechsdk.ResultReason.TranslatedSpeech if target_language
+                    else speechsdk.ResultReason.RecognizedSpeech)
+        if target_language and result.reason == speechsdk.ResultReason.RecognizedSpeech:
+            raise MissingTranslationError()
+        if result.reason != expected:
+            raise SpeechServiceError("Azure kaydın tamamını işleyemedi.")
+        if not isinstance(result.text, str) or not result.text.strip():
+            return
+        if target_language:
+            translated = result.translations.get(target_language)
+            if not isinstance(translated, str) or not translated.strip():
+                raise MissingTranslationError()
+            translations.append(translated.strip())
+        texts.append(result.text.strip())
+
+    def canceled(event):
+        # Both SDK event types expose CancellationDetails. STT does not expose
+        # TranslationRecognitionCanceledEventArgs.reason/error_code shortcuts.
+        details = event.cancellation_details
+        if details.reason == speechsdk.CancellationReason.EndOfStream:
+            return  # Normal EOF still requires session_stopped, not early success.
+        if details.reason == speechsdk.CancellationReason.Error:
+            codes = speechsdk.CancellationErrorCode
+            messages = {
+                codes.AuthenticationFailure: "Azure kimlik doğrulaması başarısız. Sunucudaki anahtar ve bölgeyi kontrol edin.",
+                codes.TooManyRequests: "Azure istek sınırına veya kotasına ulaşıldı. Daha sonra tekrar deneyin.",
+                codes.ConnectionFailure: "Azure bağlantısı kesildi; kaydın tamamı işlenemedi.",
+                codes.ServiceTimeout: "Azure yanıtı zaman aşımına uğradı; kayıt tamamlanamadı.",
+            }
+            raise SpeechServiceError(messages.get(details.code, "Azure servisi kaydı işlerken hata verdi."))
+        raise SpeechServiceError("Azure tanıma işlemi iptal edildi; kaydın tamamı işlenemedi.")
+
+    def stopped(_event):
+        nonlocal session_finished
+        session_finished = True
+        done.set()
+
     try:
-        config = speechsdk.SpeechConfig(subscription=settings.key, region=settings.region)
-        config.speech_recognition_language = language
         audio_format = speechsdk.audio.AudioStreamFormat(
             samples_per_second=SAMPLE_RATE, bits_per_sample=16, channels=1
         )
         stream = speechsdk.audio.PushAudioInputStream(stream_format=audio_format)
         audio_config = speechsdk.audio.AudioConfig(stream=stream)
-        recognizer = speechsdk.SpeechRecognizer(speech_config=config, audio_config=audio_config)
-        future = recognizer.recognize_once_async()
-        # Push only PCM samples: the WAV container has already been validated.
+        if target_language:
+            recognizer = speechsdk.translation.TranslationRecognizer(
+                translation_config=config, audio_config=audio_config)
+        else:
+            recognizer = speechsdk.SpeechRecognizer(speech_config=config, audio_config=audio_config)
+        # No recognizing or speech_end_detected handlers: neither is a final result/EOF.
+        for signal, callback in [(recognizer.recognized, recognized),
+                                 (recognizer.canceled, canceled),
+                                 (recognizer.session_stopped, stopped)]:
+            handler = guarded(callback)
+            # Track before connect: even a partially attached callback must be removed.
+            connections.append(signal)
+            signal.connect(handler)
+        _wait_sdk_operation(recognizer.start_continuous_recognition_async)
         stream.write(pcm)
-        stream.close()
+        stream.close()  # EOF is sent only after all validated samples were supplied.
         stream_closed = True
-        result = future.get()
-        if result.reason == speechsdk.ResultReason.NoMatch:
+        if not done.wait(RECOGNITION_TIMEOUT_SECONDS):
+            raise SpeechServiceError("Kaydın tamamı zamanında işlenemedi; kısmi sonuç döndürülmedi.")
+        if errors:
+            raise errors[0]
+        if not session_finished:
+            raise SpeechServiceError("Azure tanıma oturumu tamamlanmadı.")
+        if not texts:
             raise NoSpeechError()
-        if result.reason == speechsdk.ResultReason.Canceled:
-            code = result.cancellation_details.error_code
-            errors = speechsdk.CancellationErrorCode
-            messages = {
-                errors.AuthenticationFailure: "Azure kimlik doğrulaması başarısız. Sunucudaki anahtar ve bölgeyi kontrol edin.",
-                errors.TooManyRequests: "Azure istek sınırına veya kotasına ulaşıldı. Kotayı kontrol edip daha sonra deneyin.",
-                errors.ConnectionFailure: "Azure bağlantısı kurulamadı. Ağ bağlantısını kontrol edip tekrar deneyin.",
-                errors.ServiceTimeout: "Azure yanıtı zaman aşımına uğradı. Daha sonra tekrar deneyin.",
-            }
-            raise SpeechServiceError(messages.get(code, "Azure ses tanımayı iptal etti. Daha sonra tekrar deneyin."))
-        if result.reason != speechsdk.ResultReason.RecognizedSpeech:
-            raise SpeechServiceError("Azure ses tanımayı tamamlayamadı.")
-        if not isinstance(result.text, str) or not result.text.strip():
-            raise NoSpeechError()
-        return result.text
+    except BaseException as error:
+        primary_error = error
+        raise
+    finally:
+        with state_lock:
+            accepting = False
+        cleanup_failures = []
+        if recognizer is not None:
+            try:
+                # Initiated by the request flow, never by an SDK callback.
+                _wait_sdk_operation(recognizer.stop_continuous_recognition_async)
+            except Exception as error:
+                cleanup_failures.append(("stop", type(error).__name__))
+        for signal in connections:
+            try:
+                # This request owns its recognizer and all of these subscriptions.
+                signal.disconnect_all()
+            except Exception as error:
+                cleanup_failures.append(("disconnect_all", type(error).__name__))
+        if stream is not None and not stream_closed:
+            try:
+                stream.close()
+            except Exception as error:
+                cleanup_failures.append(("stream.close", type(error).__name__))
+        if cleanup_failures:
+            # Keep only safe stage/type diagnostics, never raw SDK messages/locals.
+            # A cleanup failure must not replace the original failure or its traceback.
+            if primary_error is not None:
+                primary_error.cleanup_failures = tuple(cleanup_failures)
+            else:
+                error = SpeechServiceError("Azure tanıma işlemi güvenle tamamlanamadı; tekrar deneyin.")
+                error.cleanup_failures = tuple(cleanup_failures)
+                raise error from None
+    return " ".join(texts), " ".join(translations)
+
+
+@serialized_speech
+def transcribe_pcm(pcm, language):
+    """Recognize every finalized utterance in a validated WAV's PCM samples."""
+    if language not in LANGUAGES:
+        raise InvalidAudioError("Desteklenen diller: en-US ve tr-TR.")
+    settings = load_speech_settings()
+    try:
+        config = speechsdk.SpeechConfig(subscription=settings.key, region=settings.region)
+        config.speech_recognition_language = language
+        text, _ = _continuous_pcm(config, pcm)
+        return text
     except (NoSpeechError, SpeechServiceError):
         raise
     except Exception:
         raise SpeechServiceError("Azure ses servisine erişilemedi. Ayarları ve bağlantıyı kontrol edip tekrar deneyin.") from None
-    finally:
-        if stream is not None and not stream_closed:
-            try:
-                stream.close()
-            except Exception:
-                pass
+
+
+@serialized_speech
+def translate_pcm(pcm, source_language, target_language):
+    """Translate every finalized utterance using the shared Speech resource."""
+    if (not isinstance(source_language, str)
+            or TRANSLATION_PAIRS.get(source_language) != target_language):
+        raise InvalidAudioError("Desteklenen çeviriler: en-US → tr ve tr-TR → en.")
+    settings = load_speech_settings()
+    try:
+        config = speechsdk.translation.SpeechTranslationConfig(
+            subscription=settings.key, region=settings.region)
+        config.speech_recognition_language = source_language
+        config.add_target_language(target_language)
+        text, translated = _continuous_pcm(config, pcm, target_language)
+        return {"recognized_text": text, "translated_text": translated,
+                "source_language": source_language, "target_language": target_language}
+    except (NoSpeechError, MissingTranslationError, SpeechServiceError):
+        raise
+    except Exception:
+        raise SpeechServiceError("Azure konuşma çevirisine erişilemedi. Ayarları ve bağlantıyı kontrol edip tekrar deneyin.") from None

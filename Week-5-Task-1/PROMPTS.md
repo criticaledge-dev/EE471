@@ -297,3 +297,218 @@ Merge'i abort etme. Commit, push veya git add yapma.
 Sonunda dosya bazında neyin birleştirildiğini ve test
 sonuçlarını açıkla. Stage işlemini kullanıcı yapacak.
 ```
+
+## Part 4 — İlk aşama: konuşma çevirisi
+
+```text
+EE471 Week 5 Task 1 Part 4:
+İlk aşamada yalnızca konuşma çevirisi ekle.
+
+Aktif branch speech-extensions olmalı; değilse dur.
+Önce mevcut birleşik TTS/STT uygulamasını ve testleri incele.
+Yalnızca Week-5-Task-1 içinde çalış.
+
+Mevcut TTS, STT ve 16 kHz WAV uyumluluğunu koru.
+Bu aşamada diarization veya pronunciation assessment ekleme.
+
+Backend:
+- Azure Speech SDK TranslationRecognizer kullan.
+- POST /api/translate multipart/form-data kabul et:
+  audio: WAV dosyası
+  source_language: en-US veya tr-TR
+  target_language: tr veya en
+- Kaynak ve hedef dil eşleşmelerini sunucuda doğrula.
+- İlk sürümde İngilizce → Türkçe ve Türkçe → İngilizce destekle.
+- Desteklenen dilleri güncel resmi Azure belgeleriyle doğrula.
+- Mevcut PCM WAV doğrulamasını ortak yardımcı olarak kullan:
+  16-bit, mono, 16 kHz; en fazla 30 saniye ve 1 MiB.
+- Kısa kayıtlar için recognize_once_async kullan.
+- Başarıda şu JSON biçimini döndür:
+  {
+    "recognized_text": "...",
+    "translated_text": "...",
+    "source_language": "...",
+    "target_language": "..."
+  }
+- Tanınmayan konuşmayı, eksik çeviriyi ve Azure iptal/hata
+  durumlarını açıklayıcı JSON hatalarına dönüştür.
+- Çeviri mantığını speech_service.py içinde tut.
+- Mevcut ortak işlem kilidini çeviri için de kullan.
+- Kaynak katmanını değiştirme veya yeni Azure kaynağı oluşturma.
+- Gerçek .env dosyasını inceleme veya çıktılama.
+- Yeni bir API anahtarı veya ayrı çeviri servisi kullanma.
+
+Arayüz:
+- Mevcut iki bölüme Speech Translation bölümü ekle.
+- WAV seçimi ve kaynak/hedef dil seçenekleri olsun.
+- Tanınan orijinal metni ve çeviriyi ayrı göster.
+- Bekleme, hata ve sonuç durumlarını yönet.
+- Ortak gönderim engeli bu bölümü de kapsasın.
+- Kullanıcı metinlerini textContent ile göster.
+- Hata sonrası yeniden kullanım çalışsın.
+
+Doğrulama:
+- Azure çağrılarını mock et; gerçek Azure isteği yapma.
+- Başarı, geçersiz WAV/dil, tanınmayan konuşma,
+  eksik çeviri ve servis hatalarını test et.
+- Mevcut TTS/STT testlerini yeniden çalıştır.
+- Mock sonuçlarını gerçek Azure doğrulaması olarak sunma.
+
+README ve PROMPTS.md'yi güncelle.
+Commit, push veya merge yapma.
+Sonunda değişiklikleri ve test sonuçlarını özetle.
+```
+
+## Part 4 düzeltmesi — Çok cümleli WAV ve continuous recognition
+
+Gerçek kullanıcı hatası: çeviri yalnızca ilk cümleyi döndürüyordu. Neden,
+STT ve çevirideki tek ifadeli `recognize_once_async()` kullanımıydı. İki akış
+ortak continuous recognition yaşam döngüsüne geçirildi; TTS korunmuştur.
+Düzeltme mock olaylarla sınanır; gerçek Azure doğrulaması yapılmamıştır.
+
+```text
+Yalnızca Week-5-Task-1 içinde, speech-extensions branch'inde çalış.
+
+Gerçek kullanıcı testinde hata bulundu:
+Çok cümleli WAV dosyasında /api/translate yalnızca ilk cümleyi
+tanıyıp çeviriyor. İkinci cümle kayboluyor.
+Örnek:
+"Hello, the weather is very nice today. I'm going to the library."
+
+Önce mevcut kodu incele. Tek seferlik recognize_once_async
+kullanımını, dosyanın tamamını işleyecek continuous recognition
+akışıyla değiştir.
+
+Gereksinimler:
+- TranslationRecognizer'ın recognized olaylarından yalnızca
+  kesinleşmiş çeviri sonuçlarını topla.
+- İlk recognized veya speech_end_detected olayında durma.
+- Normal tamamlanmayı session_stopped ile takip et.
+- Kaynak metin parçalarını ve hedef çevirilerini sıralarıyla
+  birleştir; mevcut JSON yanıt sözleşmesini koru.
+- recognizing içindeki geçici sonuçları nihai metne ekleyip
+  tekrar oluşturma.
+- canceled olayındaki normal bitiş ve servis hatasını ayır.
+- Timeout veya servis hatasında kısmi sonucu tam başarı gibi sunma.
+- Callback hatalarını ana işlem akışına aktar.
+- Sınırlı bekleme ve threading.Event benzeri senkronizasyon kullan;
+  sonsuz döngü veya sınırsız bekleme oluşturma.
+- Her durumda tanımayı durdur, kaynakları temizle ve ortak
+  işlem kilidini serbest bırak.
+- SDK callback'i içinden durdurma sonucunu bloklayarak bekleyip
+  deadlock oluşturma; durdurmayı ana akışta yönet.
+
+Aynı tek-cümle sınırlamasını /api/stt için de incele.
+STT de recognize_once_async kullanıyorsa WAV'ın tamamını
+işleyecek aynı yaşam döngüsü yaklaşımına geçir.
+TTS'yi değiştirme.
+
+Mevcut 30 saniye, 1 MiB, PCM 16-bit mono 16 kHz sınırları
+korunsun. Continuous recognition kullanılması bu dosya
+sınırlarını kaldırmak anlamına gelmesin.
+
+Mock testlerine ekle:
+- İki ayrı kesinleşmiş sonuç + session_stopped:
+  iki cümle de doğru sırada dönmeli.
+- Geçici ve kesinleşmiş sonuçlar: tekrar oluşmamalı.
+- İlk sonuçtan sonra hata: eksik metin başarı sayılmamalı.
+- Sessiz kayıt, timeout ve iptal.
+- Hata sonrası işlem kilidinin yeniden kullanılabilmesi.
+
+README ve PROMPTS.md'ye gerçek hatayı, nedenini ve düzeltmeyi yaz.
+Gerçek Azure testi yapma; mock testlerini açıkça ayır.
+.env içeriğini okuma veya çıktılama.
+Commit/push/merge yapma.
+```
+
+## SDK 1.53.0 — Temizlik API'si ve yanlış mock düzeltmesi
+
+Gerçek neden, her işlem sonunda `EventSignal.disconnect(handler)` çağrısının
+`AttributeError` üretmesiydi. Önceki mock bu olmayan metodu tanımladığı için
+uyumsuzluğu gizledi. İşlem başına recognizer sahipliği doğrulandı; temizlik
+`disconnect_all()` ile ve SDK yüzeyini doğrulayan spec tabanlı mock ile düzeltildi.
+Asıl hata korunur, ek temizlik hataları güvenli aşama/tip bilgisi olarak tutulur.
+
+```text
+Yalnızca Week-5-Task-1 içinde, speech-extensions branch'inde çalış.
+
+Doğrulanmış hata:
+_continuous_pcm temizliğinde EventSignal.disconnect(handler)
+çağrısı AttributeError oluşturuyor. Kurulu Speech SDK 1.53.0
+bu metodu desteklemiyor; disconnect_all() destekliyor.
+
+Önce recognizer ve olay dinleyicilerinin sahipliğini kontrol et:
+- Her tanıma işlemi kendi recognizer nesnesini oluşturuyorsa,
+  ilgili sinyallerin temizliğinde disconnect_all() kullan.
+- Paylaşılan recognizer varsa diğer işlemlerin dinleyicilerini
+  silme; önce recognizer'ı işlem başına bağımsız hâle getir.
+
+Temizlik sırası:
+- Önce tanımayı durdur ve durdurmanın tamamlanmasını bekle.
+- Sonra olay dinleyicilerini kaldır.
+- Ses kaynaklarını ve geçici dosyaları temizle.
+- Ortak işlem kilidini finally içinde mutlaka bırak.
+- Başlatma yarıda başarısız olsa da temizlik güvenli çalışsın.
+- Asıl hata varsa temizlik hatası onun tanı bilgisini maskelemesin.
+- Hataları yalnızca yutarak veya cleanup_failed kontrolünü
+  kaldırarak başarı üretme.
+
+Testleri düzelt:
+- Mock EventSignal'dan SDK'da olmayan disconnect metodunu kaldır.
+- Gerçek EventSignal yüzeyiyle uyumlu mock/spec kullan.
+- Başarılı çok cümleli STT ve çeviri, temizliği de tamamlayarak
+  başarı dönmeli.
+- Başarı ve hata sonrasında kilit yeniden kullanılabilmeli.
+- Mevcut timeout, iptal ve kısmi sonuç kontrolleri korunmalı.
+
+README/PROMPTS.md'ye gerçek nedeni, yanlış mock'un neden
+kaçırdığını ve düzeltmeyi kaydet.
+Gerçek Azure isteği yapma; .env içeriğini okuma.
+Commit/push/merge yapma.
+```
+
+## STT canceled callback — gerçek SDK olay yüzeyi düzeltmesi
+
+Çevrimdışı gerçek SDK sınıflarıyla doğrulanan exception:
+`AttributeError: 'SpeechRecognitionCanceledEventArgs' object has no attribute 'reason'`.
+Hata recognized callback'inde değil, ortak guarded sarmalayıcısının çağırdığı
+canceled callback'indeydi. STT sonucu doğru işleniyordu; normal dosya sonu
+olayında çeviriye özgü kısayol alanı okunuyordu. Callback ortak
+`cancellation_details.reason` / `.code` alanlarına geçirildi. Ayrı SDK result
+ve event spec'leri, çok cümleli birleştirme ve hata sonrası kilit kullanımı sınandı.
+
+```text
+Yalnızca Week-5-Task-1 içinde, speech-extensions branch'inde çalış.
+
+Gerçek Azure testinde:
+- Çok cümleli çeviri çalışıyor.
+- STT şu hatayı veriyor:
+  "Azure tanıma sonucu işlenemedi; kayıt tamamlanamadı."
+
+Önce bu mesajın üretildiği yolu bul.
+STT recognized callback'inde yakalanan gerçek exception tipini
+ve güvenli traceback'i belirle. Nedeni tahmin ederek değiştirme.
+
+Özellikle incele:
+- Ortak continuous yardımcı STT sonucundan yanlışlıkla
+  translations gibi yalnızca çeviri sonucunda bulunan alanları
+  okumaya çalışıyor mu?
+- STT için RecognizedSpeech, çeviri için TranslatedSpeech
+  sonuçları uygun şekilde ayrılmış mı?
+- Mock sonuç nesneleri gerçek SDK sonuç yüzeyine uyuyor mu?
+
+Anahtar, .env içeriği, ses verisi veya transkript loglama.
+Çalışan çeviriyi ve TTS'yi koru.
+
+Nedeni doğrularsan:
+- Yalnızca ilgili sonuç işleme hatasını düzelt.
+- STT ve çeviri için gerçek SDK yüzeyine uygun ayrı mock/spec
+  kullanarak regresyon testi ekle.
+- Çok cümleli STT'nin sıralı birleştirilmesini ve hata sonrası
+  kilidin yeniden kullanılmasını kontrol et.
+- README/PROMPTS.md'ye gerçek nedeni ve düzeltmeyi kaydet.
+
+Gerçek Azure çağrısı yapma.
+Commit/push/merge yapma.
+Sonunda exception'ı, nedenini ve test sonuçlarını açıkla.
+```

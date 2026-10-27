@@ -1,8 +1,9 @@
-﻿# Speech Studio — Text to Speech ve Speech to Text
+# Speech Studio — TTS, STT ve Speech Translation
 
-Tek Flask uygulamasında İngilizce (`en-US`) ve Türkçe (`tr-TR`) TTS ve STT.
+Tek Flask uygulamasında İngilizce (`en-US`) ve Türkçe (`tr-TR`) TTS, STT ve
+konuşmadan metne çeviri.
 TTS standart `en-US-JennyNeural` / `tr-TR-EmelNeural` seslerini kullanır;
-STT dosyadan tek seferlik tanıma yapar. Mikrofon erişimi gerekmez.
+STT ve çeviri, dosyanın tamamını continuous recognition ile işler. Mikrofon erişimi gerekmez.
 
 ## Windows PowerShell kurulumu ve çalıştırma
 
@@ -31,7 +32,7 @@ Sanal ortamı etkinleştirmek gerekmez. Import işlemi sunucuyu başlatmaz.
 
 ## Ortak yapılandırma ve sırayla çalışma
 
-`speech_service.py`, her iki konuşma işlemi için ortak yapılandırmayı
+`speech_service.py`, üç konuşma işlemi için ortak yapılandırmayı
 `Path(__file__).resolve().parent / ".env"` açık yolundan python-dotenv ile
 yükler. `override=False` sayesinde mevcut ortam değişkenleri önceliklidir.
 SDK `subscription=SPEECH_KEY`, `region=SPEECH_REGION` kullanır; endpoint
@@ -42,7 +43,7 @@ Anahtarlar, kullanıcı metni ve ham SDK hataları istemciye veya loglara
 aktarılmaz. Bu merge çözümünde gerçek `.env` okunmamış veya değiştirilmemiştir.
 
 F0 üzerinde eşzamanlı istekleri önlemek için arayüzde bir işlem sürerken
-iki gönderim butonu da devre dışı kalır. Sunucuda ortak kilit TTS ve STT
+tüm gönderim butonları devre dışı kalır. Sunucuda ortak kilit TTS, STT ve çeviri
 SDK işlemlerini farklı istemcilerden gelseler bile sırayla çalıştırır.
 Bu kilit tek Python süreci kapsamındadır: yerel uygulamayı tek süreçle
 çalıştırın. Birden fazla worker/sunucu için ortak dış kuyruk gerekir.
@@ -77,8 +78,8 @@ biçimde üretir; mevcut 24 kHz sesin başlığını değiştirme veya yerelde y
   Multipart isteğinin tamamı için ek 64 KiB pay vardır.
 - Uzantıya veya MIME bilgisine güvenilmez: RIFF boyutu, bölüm sınırları,
   fmt/data alanları, örnek hizalaması ve gerçek örnek süresi doğrulanır.
-- `recognize_once_async()` tek ifadeyi tanır; ilk sessizlikte veya yaklaşık
-  30 saniyede biter. Birden fazla ifadenin tamamının tanınacağı garanti edilmez.
+- Continuous recognition dosyadaki birden fazla ifadeyi işler; kesinleşmiş
+  metin parçaları geliş sırasıyla birleştirilir. Dosya sınırı yine 30 saniyedir.
 
 Doğrulanan ham PCM, isteğe özel `PushAudioInputStream` ile gönderilir;
 WAV başlığı SDK akışına yazılmaz. Akış başarı ve hata sonrasında kapatılır.
@@ -88,14 +89,59 @@ TTS'den indirilen WAV dosyası biçim bakımından doğrudan STT'ye yüklenebili
 Ancak uzun TTS kayıtları STT'nin 30 saniye / 1 MiB sınırlarını aşabilir ve
 reddedilir. Uzun kayıtların tamamının kabul edileceği iddia edilmez.
 
+## Speech Translation — konuşma çevirisi
+
+`POST /api/translate`, `multipart/form-data` olarak `audio` WAV dosyası,
+`source_language` ve `target_language` alır. İlk sürüm yalnızca şu eşleşmeleri
+destekler; dil alanları ve eşleşmeleri sunucuda doğrulanır:
+
+| Kaynak konuşma dili | Hedef metin dili |
+| --- | --- |
+| `en-US` | `tr` |
+| `tr-TR` | `en` |
+
+Başarı yanıtı:
+
+```json
+{
+  "recognized_text": "Hello world",
+  "translated_text": "Merhaba dünya",
+  "source_language": "en-US",
+  "target_language": "tr"
+}
+```
+
+Azure Speech SDK `SpeechTranslationConfig` ve `TranslationRecognizer` kullanılır.
+Aynı `SPEECH_KEY` / `SPEECH_REGION` ve ortak sunucu kilidi geçerlidir; ayrı API
+anahtarı, çeviri servisi veya yeni Azure kaynağı gerekmez. Kaynak katmanı
+değiştirilmez. Çeviri sesi üretilmez; kaynak konuşma ve hedef metin döndürülür.
+
+STT ile aynı `validate_wav()` yardımcısı PCM 16-bit, mono, 16 kHz, en fazla
+30 saniye / 1 MiB doğrulamasını yapar. WAV başlığı çıkarıldıktan sonra PCM
+isteğe özel bellek akışıyla gönderilir. Continuous recognition, dosyanın
+tamamındaki kesinleşmiş kaynak metinleri ve hedef çevirileri sırayla birleştirir.
+Akış başarı/hata sonrasında kapatılır. Tanınmayan konuşma 422, hedef dilde
+çeviri bulunmaması 502 döndürür; eksik sonuç başarı gibi sunulmaz.
+
+Dil desteği **26 Ekim 2026** tarihinde güncel resmi Azure belgelerinden
+doğrulandı: kaynak konuşma dili tam locale (`en-US`, `tr-TR`), hedef metin
+dili kısa kod (`en`, `tr`) kullanır. Kaynak:
+[Azure gerçek zamanlı konuşma çevirisi dil desteği](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=speech-translation#real-time-speech-translation).
+SDK kullanımı: [konuşma çevirisi rehberi](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/how-to-translate-speech).
+
 ## Arayüz ve hatalar
 
-`GET /` aynı sayfada ayrı TTS ve STT bölümlerini sunar. DOM kimlikleri,
+`GET /` aynı sayfada ayrı TTS, STT ve Speech Translation bölümlerini sunar. DOM kimlikleri,
 sonuç, hata ve bekleme alanları bölüm bazında ayrıdır. Yeni istekte ilgili
 bölümün önceki sonucu temizlenir; başarısız istek eski sonucu göstermez.
 Eski WAV/TXT object URL'leri bırakılır. STT metni `textContent` ile yerleştirilir;
 kopyalanabilir veya UTF-8 TXT indirilebilir. Kopyalama için localhost/güvenli
 bağlam ve tarayıcı izni gerekir; izin yoksa indirme veya elle kopyalama yapılabilir.
+
+Çeviri bölümünde kaynak ve hedef dil seçilir; kaynak değişince karşı hedef dil
+önerilir. Geçersiz eşleşmeler backend tarafından reddedilir. Tanınan orijinal
+metin ve çeviri ayrı alanlara `textContent` ile yerleştirilir. Ortak gönderim
+engeli üç bölümü de kapsar; hata sonrasında yeniden kullanım mümkündür.
 
 Hata yanıtları `{"error":"..."}` biçimindedir:
 
@@ -103,12 +149,128 @@ Hata yanıtları `{"error":"..."}` biçimindedir:
 | --- | --- |
 | Geçersiz JSON, metin, dosya, biçim, süre veya dil | 400 |
 | Dosya/istek boyut sınırı aşıldı | 413 |
-| STT konuşmayı tanıyamadı veya boş sonuç döndü | 422 |
+| STT/çeviri konuşmayı tanıyamadı veya boş kaynak metin döndü | 422 |
 | Azure ayarları eksik | 503 |
-| Azure iptal, kimlik doğrulama, kota veya bağlantı sorunu | 502 |
+| Azure iptal, kimlik doğrulama, kota, bağlantı veya eksik çeviri sorunu | 502 |
 | Beklenmeyen uygulama hatası | 500 |
 
 ## Mock testleri ve gerçek doğrulama
+
+### Gerçek kullanıcı hatası ve continuous recognition düzeltmesi
+
+Kullanıcı çok cümleli WAV ile `/api/translate` denemesinde yalnızca ilk
+cümleyi aldı; ikinci cümle kayboldu. Örnek kayıt:
+`Hello, the weather is very nice today. I'm going to the library.`
+Neden, önceki `recognize_once_async()` kullanımının tek ifade sonrasında
+bitmesiydi. Aynı kullanım `/api/stt` içinde de bulundu; iki akış birlikte düzeltildi.
+
+Ortak `_continuous_pcm()` yardımcısı `recognized` olaylarından yalnızca
+kesinleşmiş sonuçları toplar. `recognizing` ara sonuçları eklenmez;
+ilk sonuç veya `speech_end_detected` durdurma nedeni değildir.
+Normal tamamlanma yalnızca `session_stopped` ile doğrulanır. `canceled`
+olayında `EndOfStream` normal dosya sonudur ve yine oturum bitişi beklenir;
+servis hatası veya kullanıcı iptali hata döndürür. JSON yanıt alanları korunur.
+
+Callback hataları güvenli hata olarak ana akışa aktarılır. Timeout, iptal,
+eksik çeviri veya ilk cümleden sonraki servis hatası kısmi sonucu başarı olarak
+döndürmez. Sessiz/hiç tanınmayan kayıt 422 döndürür.
+
+`threading.Event` ile oturum tamamlanması en fazla 60 saniye beklenir.
+Başlatma ve durdurma SDK future'ları, `.get()` timeout parametresi sunmadığı
+için ayrı daemon iş parçacığında en fazla 5'er saniye beklenir. Takılı kalan
+native future zorla sonlandırılamaz; HTTP akışı sonsuza kadar beklemez.
+Her çıkışta ana işlem akışı durdurmayı ister ve sınırlı süreyle tamamlanmasını
+bekler; ardından olay dinleyicilerini ayırır, açık kalan PCM akışını kapatır
+ve ortak işlem kilidini serbest bırakır. Normal akışta PCM girişinin daha önce
+kapatılması dosya sonunu (EOF) bildirir; temizlik adımından ayrıdır. Durdurma veya
+temizlik hatası da başarı sayılmaz. SDK callback'i içinde durdurma beklenmez.
+
+Bu değişiklik 30 saniye, 1 MiB, 16-bit mono 16 kHz PCM WAV yükleme
+sınırlarını kaldırmaz. TTS üretim kodu ve 16 kHz WAV seçimi değiştirilmedi.
+
+Bu hataya ilişkin gerçek kullanıcı bildirimi ile düzeltme testleri ayrıdır:
+düzeltme gerçek Azure üzerinde denenmedi. Yeni olay tabanlı mock testleri iki
+kesinleşmiş cümleyi, ara sonuçların tekrarlanmamasını, ilk sonuç sonrası hatayı,
+sessiz kaydı, timeout/iptali, callback hatasını, kaynak temizliğini ve hata
+sonrasında kilidin yeniden kullanılmasını doğrular.
+
+Continuous recognition düzeltmesi sonrası **47 Python mock testi ve 5 arayüz
+mock testi geçti**. Gerçek Azure ve gerçek tarayıcı doğrulaması yapılmadı.
+
+### Speech SDK 1.53.0 temizlik hatası ve mock düzeltmesi
+
+Gerçek kullanıcı denemesinde TTS 200 dönerken continuous çeviri 502 ve
+"Azure tanıma işlemi güvenle tamamlanamadı" mesajını döndürdü. Çevrimdışı
+olarak gerçek SDK `EventSignal` nesneleriyle doğrulanan neden:
+`signal.disconnect(handler)` çağrısı `AttributeError` üretiyordu.
+Speech SDK 1.53.0'da `disconnect` yoktur; desteklenen API `disconnect_all()`'dır.
+
+Önceki test yardımcısı SDK'da bulunmayan `disconnect` metodunu elle tanımladığı
+için yanlış çağrı mock testlerini geçiyordu. Yardımcı artık gerçek
+`speechsdk.EventSignal` üzerinden `create_autospec(..., spec_set=True)`
+kullanır; desteklenmeyen metotlar ve yanlış imzalar testte hata verir.
+Gerçek `EventSignal` sınıfıyla da ağsız çok cümleli STT/çeviri regresyonu vardır.
+
+Her `_continuous_pcm()` çağrısı kendi recognizer, PCM akışı ve dinleyicilerini
+oluşturur; recognizer paylaşılmaz. Bu nedenle durdurma tamamlandıktan sonra
+yalnızca o işleme ait sinyallerin `disconnect_all()` metodu çağrılır.
+Başlatma veya dinleyici bağlama yarıda hata verse de sahip olunan kaynakların
+temizliği denenir. Uygulama geçici ses dosyası oluşturmaz.
+
+Asıl işlem/callback/timeout hatası varsa temizlik hatası onun nesnesini veya
+traceback'ini değiştirmez. Ek temizlik sorunları `cleanup_failures` üzerinde
+yalnızca aşama ve exception tipi olarak tutulur; ham SDK mesajları ve sırlar
+istemciye veya loglara aktarılmaz. Asıl hata yokken temizlik başarısız olursa
+yine güvenli hata döner; temizlik hatasını yutarak 200 üretilmez. Ortak kilit
+dekoratördeki context manager tarafından başarı/hata çıkışında bırakılır.
+
+Bu düzeltmenin testleri mock/çevrimdışı kontrollerdir; gerçek Azure isteği
+yapılmadı ve `.env` içeriği okunmadı. Resmi API referansı:
+[EventSignal ve disconnect_all](https://learn.microsoft.com/en-us/python/api/azure-cognitiveservices-speech/azure.cognitiveservices.speech.eventsignal?view=azure-python).
+
+Temizlik düzeltmesi sonrasında **54 Python testi ve 5 arayüz mock testi geçti**.
+Bu sayıya gerçek EventSignal sınıfıyla ağsız regresyon ve başarısız temizlikte
+asıl exception/traceback'in korunması kontrolleri de dahildir.
+
+### STT dosya sonunda canceled olayı: SDK yüzeyi farkı
+
+Kullanıcı gerçek Azure denemesinde çok cümleli çevirinin çalıştığını, STT'nin
+ise "Azure tanıma sonucu işlenemedi; kayıt tamamlanamadı" döndürdüğünü bildirdi.
+Bu mesaj yalnızca `recognized` için değildir: ortak `guarded()` sarmalayıcısı
+`recognized`, `canceled` ve `session_stopped` callback'lerini kapsar.
+
+Kurulu SDK 1.53.0'ın gerçek STT sonuç/olay sınıflarıyla ağsız tanıda
+`recognized` sonucu başarıyla işlendi. Hata `canceled()` içinde doğrulandı:
+
+```text
+AttributeError: 'SpeechRecognitionCanceledEventArgs' object has no attribute 'reason'
+  speech_service.py, canceled(): if event.reason == ...
+```
+
+STT canceled olayında çeviri olayındaki doğrudan `reason` / `error_code`
+kısayolları yoktur. İki tür de `event.cancellation_details.reason` ve
+`event.cancellation_details.code` sunar. Yalnızca ortak canceled callback'i
+bu alanlara geçirildi. Normal EOF hâlâ `session_stopped` bekler; gerçek
+servis hatası veya iptal kısmi sonucu başarıya dönüştürmez.
+
+STT sonucunda yanlışlıkla `translations` okunması söz konusu değildi:
+`RecognizedSpeech` ve `TranslatedSpeech` ayrımı, hedef dil koşulu ve sıralı
+birleştirme korunmuştur. TTS kodu ve çalışan çeviri üretimi değiştirilmedi.
+Önceki ortak `SimpleNamespace` iptal mock'u her iki olayda da `reason` ve
+`error_code` varmış gibi davrandığından hata testlerden kaçmıştı.
+
+Artık sonuçlar/olaylar STT için `SpeechRecognitionResult` /
+`SpeechRecognitionEventArgs` / `SpeechRecognitionCanceledEventArgs`, çeviri
+için ayrı Translation karşılıklarından `spec_set=True` ile oluşturulur.
+CancellationDetails da gerçek SDK yüzeyine bağlıdır. STT mock'unda
+`translations`, iptal mock'unda doğrudan `reason` / `error_code` erişimi
+AttributeError verir. Çok cümle → EOF → session_stopped, servis hatası ve
+hata sonrası yeniden kullanım regresyonları iki türü ayrı sınar.
+
+Bu düzeltme sonrası **56 Python testi ve 5 arayüz mock testi geçti**.
+Tanı ve testlerde anahtar, `.env`, ses verisi veya kullanıcı transkripti
+okunmadı/loglanmadı; gerçek Azure isteği yapılmadı. Kullanıcının gerçek
+deneme bildirimi ile düzeltmenin çevrimdışı doğrulaması birbirinden ayrıdır.
 
 ```powershell
 .\.venv\Scripts\python.exe -B -m unittest discover -s tests -v
@@ -131,6 +293,14 @@ Birleşim kontrol sonucu: 28 Python mock testi ve 3 Node.js arayüz mock testi
 geçti. Kaynak dosyalarda merge işareti kalmadığı ve `.env.example` dosyasının
 yok sayılmadığı kontrol edildi.
 
+Part 4 çeviri eklemesi sonrasında mevcut testler dahil **39 Python mock testi
+ve 5 Node.js arayüz mock testi geçti**. Yeni testler iki çeviri yönünü, SDK
+yapılandırmasını, ortak WAV sınırlarını, geçersiz dil eşleşmelerini, tanınmayan
+konuşmayı, eksik çeviriyi, güvenli servis hatalarını, akış temizliğini ve ortak
+kilidi kapsar. Arayüz mock testleri de çeviri sırasında ortak gönderim engelini,
+metinlerin ayrı gösterimini ve hata sonrası yeniden kullanımı kontrol eder.
+Çeviri için gerçek Azure isteği veya gerçek tarayıcı testi yapılmadı.
+
 Kullanıcının daha önce STT branch'inde yerelde yaptığı gerçek Azure denemesi
 başarılıdır: Türkçe WAV doğru metne dönüştürülmüş; kopyalama, TXT indirme ve
 hata sonrası yeniden kullanım kullanıcı tarafından doğrulanmıştır.
@@ -143,5 +313,5 @@ kontrollerde kullanılan `.test-deps/` normal çalıştırmada gerekli değildir
 `PROMPTS.md` iki branch'in istem geçmişini ve birleşim isteğini saklar.
 
 SDK kaynakları: [ses üretimi ve çıktı biçimi](https://learn.microsoft.com/azure/ai-services/speech-service/how-to-speech-synthesis),
-[tek seferlik tanıma](https://learn.microsoft.com/python/api/azure-cognitiveservices-speech/azure.cognitiveservices.speech.speechrecognizer),
+[continuous recognition ve olaylar](https://learn.microsoft.com/python/api/azure-cognitiveservices-speech/azure.cognitiveservices.speech.speechrecognizer),
 [ses akışları](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/how-to-use-audio-input-streams).

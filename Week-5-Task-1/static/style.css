@@ -10,7 +10,7 @@ button { margin: 20px 0 12px; background: #2358a1; color: white; cursor: pointer
 button:disabled { opacity: .65; cursor: wait; }
 :focus-visible { outline: 3px solid #739fe0; outline-offset: 3px; }
 .error { padding: 12px; color: #8b1d26; background: #fff0f1; border-radius: 6px; }
-#stt-transcript { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; background: #f2f5fa; }
+#stt-transcript, .transcript { white-space: pre-wrap; overflow-wrap: anywhere; padding: 16px; background: #f2f5fa; }
 a { color: #2358a1; }
 [hidden] { display: none !important; }
 @media (max-width: 480px) { main { padding: 20px; } }

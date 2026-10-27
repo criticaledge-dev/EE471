@@ -11,7 +11,9 @@ function setup() {
   const ids = ["tts-form", "tts-generate", "tts-status", "tts-error", "tts-result",
     "tts-audio", "tts-download", "tts-text", "tts-language", "stt-form",
     "stt-transcribe", "stt-status", "stt-error", "stt-result", "stt-transcript",
-    "stt-download", "stt-copy"];
+    "stt-download", "stt-copy", "translation-form", "translation-submit",
+    "translation-source", "translation-target", "translation-status",
+    "translation-error", "translation-result", "translation-original", "translation-text"];
   const elements = Object.fromEntries(ids.map(id => [id, {
     textContent: "", hidden: false, disabled: false, value: "",
     addEventListener(name, callback) { this[name] = callback; },
@@ -120,4 +122,68 @@ test("network errors release both send controls", async () => {
   assert.equal(ui.elements["tts-result"].hidden, true);
   assert.equal(ui.elements["tts-generate"].disabled, false);
   assert.equal(ui.elements["stt-transcribe"].disabled, false);
+});
+
+test("translation uses the shared guard, renders literal texts and allows retry after failure", async () => {
+  const ui = setup(), e = ui.elements;
+  let work = ui.submit("translation");
+  for (const id of ["tts-generate", "stt-transcribe", "translation-submit"]) {
+    assert.equal(e[id].disabled, true);
+  }
+  await ui.submit("tts");
+  await ui.submit("stt");
+  await ui.submit("translation");
+  assert.equal(ui.requests.length, 1);
+  assert.equal(ui.requests[0].url, "/api/translate");
+  assert.equal(ui.requests[0].options.body.form, e["translation-form"]);
+  ui.requests[0].resolve({ ok: true, json: async () => ({
+    recognized_text: "<b>Hello</b>", translated_text: "<b>Merhaba</b>",
+    source_language: "en-US", target_language: "tr",
+  }) });
+  await work;
+  assert.equal(e["translation-original"].textContent, "<b>Hello</b>");
+  assert.equal(e["translation-text"].textContent, "<b>Merhaba</b>");
+  assert.equal(e["translation-result"].hidden, false);
+  work = ui.submit("translation");
+  assert.equal(e["translation-original"].textContent, "");
+  assert.equal(e["translation-text"].textContent, "");
+  assert.equal(e["translation-result"].hidden, true);
+  ui.requests[1].resolve(errorResponse());
+  await work;
+  assert.equal(e["translation-error"].hidden, false);
+  assert.equal(e["translation-result"].hidden, true);
+  for (const id of ["tts-generate", "stt-transcribe", "translation-submit"]) {
+    assert.equal(e[id].disabled, false);
+  }
+  work = ui.submit("translation");
+  ui.requests[2].resolve({ ok: true, json: async () => ({ recognized_text: "Hello", translated_text: "Merhaba" }) });
+  await work;
+  assert.equal(e["translation-error"].hidden, true);
+  assert.equal(e["translation-result"].hidden, false);
+  e["translation-source"].value = "tr-TR";
+  e["translation-source"].change();
+  assert.equal(e["translation-target"].value, "en");
+  work = ui.submit("tts");
+  await ui.submit("translation");
+  assert.equal(ui.requests.length, 4);
+  ui.requests[3].resolve(wavResponse());
+  await work;
+  assert.equal(e["translation-original"].textContent, "Hello");
+});
+
+test("translation rejects incomplete success and releases controls after a network failure", async () => {
+  const ui = setup(), e = ui.elements;
+  let work = ui.submit("translation");
+  ui.requests[0].resolve({ ok: true, json: async () => ({ recognized_text: "Hello" }) });
+  await work;
+  assert.equal(e["translation-result"].hidden, true);
+  assert.equal(e["translation-error"].hidden, false);
+  work = ui.submit("translation");
+  ui.requests[1].reject(new TypeError("mock network failure"));
+  await work;
+  assert.equal(e["translation-result"].hidden, true);
+  assert.equal(e["translation-error"].hidden, false);
+  assert.equal(e["translation-submit"].disabled, false);
+  assert.equal(e["tts-generate"].disabled, false);
+  assert.equal(e["stt-transcribe"].disabled, false);
 });

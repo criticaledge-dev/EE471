@@ -5,8 +5,8 @@ from werkzeug.exceptions import RequestEntityTooLarge
 
 from speech_service import (
     ConfigurationError, InvalidAudioError, LANGUAGES, MAX_FILE_BYTES,
-    NoSpeechError, SpeechServiceError, VOICES, synthesize_speech,
-    transcribe_pcm, validate_wav,
+    MissingTranslationError, NoSpeechError, SpeechServiceError, VOICES,
+    TRANSLATION_PAIRS, synthesize_speech, transcribe_pcm, translate_pcm, validate_wav,
 )
 
 app = Flask(__name__)
@@ -70,13 +70,45 @@ def speech_to_text():
     except ConfigurationError:
         return jsonify(error="Azure ayarları eksik. Sunucuda SPEECH_KEY ve SPEECH_REGION ayarlarını tamamlayın."), 503
     except NoSpeechError:
-        return jsonify(error="Konuşma tanınamadı. Seçilen dilde, net ve tek ifadeli bir kayıt deneyin."), 422
+        return jsonify(error="Konuşma tanınamadı. Seçilen dilde net bir kayıt deneyin."), 422
     except SpeechServiceError as error:
         return jsonify(error=error.public_message), 502
     except Exception:
         # Neither log nor return raw exceptions, credentials or user content.
         return jsonify(error="Ses işlenemedi. Lütfen daha sonra tekrar deneyin."), 500
     return jsonify(text=text)
+
+
+@app.post("/api/translate")
+def speech_translation():
+    if request.mimetype != "multipart/form-data":
+        return jsonify(error="audio, source_language ve target_language alanlarını multipart/form-data olarak gönderin."), 400
+    source = request.form.get("source_language", "")
+    target = request.form.get("target_language", "")
+    if source not in TRANSLATION_PAIRS or TRANSLATION_PAIRS[source] != target:
+        return jsonify(error="Desteklenen çeviriler: en-US → tr ve tr-TR → en."), 400
+    upload = request.files.get("audio")
+    if upload is None or not upload.filename:
+        return jsonify(error="Bir WAV dosyası seçin (audio alanı)."), 400
+    data = upload.read(MAX_FILE_BYTES + 1)
+    if len(data) > MAX_FILE_BYTES:
+        return oversized_request(None)
+    try:
+        pcm = validate_wav(data)
+        result = translate_pcm(pcm, source, target)
+    except InvalidAudioError as error:
+        return jsonify(error=str(error)), 400
+    except ConfigurationError:
+        return jsonify(error="Azure ayarları eksik. Sunucuda SPEECH_KEY ve SPEECH_REGION ayarlarını tamamlayın."), 503
+    except NoSpeechError:
+        return jsonify(error="Konuşma tanınamadı. Kaynak dilde net bir kayıt deneyin."), 422
+    except MissingTranslationError:
+        return jsonify(error="Azure hedef dil için çeviri döndürmedi. Lütfen tekrar deneyin."), 502
+    except SpeechServiceError as error:
+        return jsonify(error=error.public_message), 502
+    except Exception:
+        return jsonify(error="Konuşma çevrilemedi. Lütfen daha sonra tekrar deneyin."), 500
+    return jsonify(result)
 
 
 if __name__ == "__main__":

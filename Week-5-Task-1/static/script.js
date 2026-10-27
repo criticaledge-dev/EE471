@@ -5,7 +5,65 @@ function setSpeechBusy(busy) {
   speechBusy = busy;
   document.getElementById("tts-generate").disabled = busy;
   document.getElementById("stt-transcribe").disabled = busy;
+  document.getElementById("translation-submit").disabled = busy;
 }
+
+(() => {
+  const form = document.getElementById("translation-form");
+  const source = document.getElementById("translation-source");
+  const target = document.getElementById("translation-target");
+  const status = document.getElementById("translation-status");
+  const error = document.getElementById("translation-error");
+  const result = document.getElementById("translation-result");
+  const original = document.getElementById("translation-original");
+  const translated = document.getElementById("translation-text");
+
+  function clearResult() {
+    result.hidden = true;
+    original.textContent = "";
+    translated.textContent = "";
+  }
+
+  source.addEventListener("change", () => {
+    target.value = source.value === "en-US" ? "tr" : "en";
+  });
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (speechBusy) return;
+    clearResult();
+    error.hidden = true;
+    error.textContent = "";
+    setSpeechBusy(true);
+    form.setAttribute("aria-busy", "true");
+    status.textContent = "Konuşma çevriliyor…";
+    try {
+      const response = await fetch("/api/translate", { method: "POST", body: new FormData(form) });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(body && typeof body.error === "string" ? body.error : "Konuşma çevrilemedi. Tekrar deneyin.");
+      }
+      if (!body || typeof body.recognized_text !== "string" || !body.recognized_text.trim()
+          || typeof body.translated_text !== "string" || !body.translated_text.trim()) {
+        throw new Error("Sunucudan eksiksiz bir çeviri sonucu alınamadı.");
+      }
+      original.textContent = body.recognized_text;
+      translated.textContent = body.translated_text;
+      result.hidden = false;
+      status.textContent = "Çeviri hazır.";
+    } catch (failure) {
+      clearResult();
+      status.textContent = "";
+      error.textContent = failure instanceof TypeError
+        ? "Sunucuya ulaşılamadı. Bağlantınızı kontrol edip tekrar deneyin."
+        : failure.message;
+      error.hidden = false;
+    } finally {
+      setSpeechBusy(false);
+      form.removeAttribute("aria-busy");
+    }
+  });
+})();
 
 (() => {
 

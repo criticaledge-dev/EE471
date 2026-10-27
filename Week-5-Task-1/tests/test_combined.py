@@ -13,6 +13,7 @@ import wave
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import app as web
 import speech_service as service
+from continuous_mock import wire_continuous
 
 
 def make_wav(seconds=1):
@@ -56,8 +57,8 @@ class CombinedTests(unittest.TestCase):
         self.wav = make_wav()
         self.synth.return_value.speak_text_async.return_value.get.return_value = SimpleNamespace(
             reason=service.speechsdk.ResultReason.SynthesizingAudioCompleted, audio_data=self.wav)
-        self.recognizer.return_value.recognize_once_async.return_value.get.return_value = SimpleNamespace(
-            reason=service.speechsdk.ResultReason.RecognizedSpeech, text="Hello world")
+        result = SimpleNamespace(reason=service.speechsdk.ResultReason.RecognizedSpeech, text="Hello world")
+        wire_continuous(self.recognizer.return_value, self.stream.return_value, lambda: result)
         self.client = web.app.test_client()
 
     def test_both_features_unique_ids_and_languages_without_configuration(self):
@@ -71,8 +72,11 @@ class CombinedTests(unittest.TestCase):
         self.assertTrue(set(parser.labels).issubset(parser.ids))
         for element in ["tts-form", "stt-form", "tts-audio", "tts-download", "stt-copy", "stt-download"]:
             self.assertIn(element, parser.ids)
-        self.assertEqual(parser.options.count("en-US"), 2)
-        self.assertEqual(parser.options.count("tr-TR"), 2)
+        self.assertEqual(parser.options.count("en-US"), 3)
+        self.assertEqual(parser.options.count("tr-TR"), 3)
+        self.assertIn("translation-form", parser.ids)
+        self.assertIn("translation-original", parser.ids)
+        self.assertIn("translation-text", parser.ids)
         self.assertIn("30 saniye", html)
         self.dotenv.assert_not_called()
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Speech Studio — TTS &amp; STT</title>
+  <title>Speech Studio — TTS, STT &amp; Translation</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script defer src="{{ url_for('static', filename='script.js') }}"></script>
 </head>
@@ -11,7 +11,7 @@
   <main>
     <h1>Speech Studio</h1>
     <p>İngilizce ve Türkçe metin ile ses dönüşümü. Konuşma işlemleri sırayla çalışır;
-      bir işlem sürerken her iki gönderim butonu da bekler.</p>
+      bir işlem sürerken tüm gönderim butonları bekler.</p>
     <div class="features">
     <section aria-labelledby="tts-heading">
       <h2 id="tts-heading">Text to Speech</h2>
@@ -36,8 +36,8 @@
     <section aria-labelledby="stt-heading">
       <h2 id="stt-heading">Speech to Text</h2>
       <p class="notice">Yalnızca sıkıştırılmamış PCM WAV: 16-bit, mono, 16 kHz.
-      En fazla 1 MiB ve 30 saniye. Tek seferlik tanıma ilk sessizlikte veya yaklaşık
-      30 saniyede biter; tek bir ifade kullanın. Uzun konuşmaların tamamı işlenmez.</p>
+      En fazla 1 MiB ve 30 saniye. Dosyanın tamamı continuous recognition ile
+      işlenir; birden fazla cümlenin kesinleşmiş sonuçları sırayla birleştirilir.</p>
     <form id="stt-form">
       <label for="stt-audio">WAV dosyası</label>
       <input id="stt-audio" name="audio" type="file" accept=".wav,audio/wav" required>
@@ -56,6 +56,35 @@
       <button id="stt-copy" type="button">Metni kopyala</button>
       <a id="stt-download" download="transcript.txt">TXT olarak indir</a>
     </section>
+    </section>
+    <section aria-labelledby="translation-heading">
+      <h2 id="translation-heading">Speech Translation</h2>
+      <p class="notice">İngilizce → Türkçe veya Türkçe → İngilizce.
+        PCM WAV: 16-bit, mono, 16 kHz; en fazla 1 MiB ve 30 saniye.
+        Dosyanın tamamındaki kesinleşmiş konuşma ve çeviri parçaları sırayla birleştirilir.</p>
+      <form id="translation-form">
+        <label for="translation-audio">WAV dosyası</label>
+        <input id="translation-audio" name="audio" type="file" accept=".wav,audio/wav" required>
+        <label for="translation-source">Kaynak dil</label>
+        <select id="translation-source" name="source_language">
+          <option value="en-US">English (en-US)</option>
+          <option value="tr-TR">Türkçe (tr-TR)</option>
+        </select>
+        <label for="translation-target">Hedef dil</label>
+        <select id="translation-target" name="target_language">
+          <option value="tr">Türkçe (tr)</option>
+          <option value="en">English (en)</option>
+        </select>
+        <button id="translation-submit" type="submit">Translate Speech</button>
+      </form>
+      <p id="translation-status" role="status" aria-live="polite"></p>
+      <p id="translation-error" class="error" role="alert" hidden></p>
+      <section id="translation-result" aria-label="Çeviri sonucu" hidden>
+        <h3>Tanınan orijinal metin</h3>
+        <p id="translation-original" class="transcript"></p>
+        <h3>Çeviri</h3>
+        <p id="translation-text" class="transcript"></p>
+      </section>
     </section>
     </div>
     <p class="notice">TTS WAV dosyasını indirip STT alanına yükleyebilirsiniz.
