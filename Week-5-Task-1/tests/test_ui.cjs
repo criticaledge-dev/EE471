@@ -15,7 +15,8 @@ function setup() {
     "translation-source", "translation-target", "translation-status",
     "translation-error", "translation-result", "translation-original", "translation-text",
     "pronunciation-form", "pronunciation-submit", "pronunciation-status", "pronunciation-error",
-    "pronunciation-result", "pronunciation-reference-result", "pronunciation-scope", "pronunciation-segments"];
+    "pronunciation-result", "pronunciation-reference-result", "pronunciation-scope", "pronunciation-segments",
+    "diarization-start"];
   const elements = Object.fromEntries(ids.map(id => [id, {
     textContent: "", hidden: false, disabled: false, value: "", children: [],
     addEventListener(name, callback) { this[name] = callback; },

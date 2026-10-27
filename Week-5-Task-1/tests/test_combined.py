@@ -72,7 +72,7 @@ class CombinedTests(unittest.TestCase):
         self.assertTrue(set(parser.labels).issubset(parser.ids))
         for element in ["tts-form", "stt-form", "tts-audio", "tts-download", "stt-copy", "stt-download"]:
             self.assertIn(element, parser.ids)
-        self.assertEqual(parser.options.count("en-US"), 3)
+        self.assertEqual(parser.options.count("en-US"), 4)
         self.assertEqual(parser.options.count("tr-TR"), 3)
         self.assertIn("translation-form", parser.ids)
         self.assertIn("translation-original", parser.ids)
@@ -80,6 +80,8 @@ class CombinedTests(unittest.TestCase):
         self.assertIn("pronunciation-form", parser.ids)
         self.assertIn("pronunciation-reference", parser.ids)
         self.assertIn("pronunciation-result", parser.ids)
+        self.assertIn("diarization-start", parser.ids)
+        self.assertIn("diarization-finals", parser.ids)
         self.assertIn("30 saniye", html)
         self.dotenv.assert_not_called()
 

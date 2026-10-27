@@ -7,6 +7,7 @@ function setSpeechBusy(busy) {
   document.getElementById("stt-transcribe").disabled = busy;
   document.getElementById("translation-submit").disabled = busy;
   document.getElementById("pronunciation-submit").disabled = busy;
+  document.getElementById("diarization-start").disabled = busy;
 }
 
 (() => {

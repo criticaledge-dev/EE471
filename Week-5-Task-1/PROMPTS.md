@@ -589,3 +589,102 @@ README ve PROMPTS.md'yi güncelle.
 Commit/push/merge yapma.
 Sonunda değişiklikleri, sonuç şemasını ve testleri özetle.
 ```
+
+## Part 4 — Gerçek zamanlı mikrofon diarization
+
+```text
+Week 5 Task 1 Part 4: Gerçek zamanlı diarization ekle.
+
+Aktif branch speech-extensions olmalı.
+Yalnızca Week-5-Task-1 içinde çalış.
+Mevcut TTS, STT, çeviri ve pronunciation özelliklerini koru.
+Azure Speech kaynağı kullanıcı tarafından S0'a geçirildi.
+
+Önce mevcut mimariyi, testleri ve Microsoft'un Python
+ConversationTranscriber örneğini incele.
+Kurulu SDK 1.53.0'ın gerçek metot ve olay yüzeyini doğrula.
+Önceki disconnect ve canceled event alanı hatalarını tekrarlama.
+
+Canlı ses akışı:
+- Tarayıcı mikrofonunu getUserMedia ile kullan.
+- Başlat, Durdur ve dil seçimi olan Diarization bölümü ekle.
+- İlk sürüm en-US desteklesin.
+- Kullanıcı mikrofon izni vermeden kayıt başlatma.
+- Ses konuşma sırasında backend'e aktarılsın.
+- Kaydı bitirip tek WAV yüklemeyi canlı diarization diye sunma.
+- Flask ile uyumlu WebSocket bağlantısı için Flask-Sock
+  gibi küçük bir bağımlılık kullanılabilir.
+- Azure anahtarını tarayıcıya gönderme.
+
+Ses formatı:
+- Tarayıcıdaki gerçek AudioContext sampleRate değerini dikkate al.
+- Mono, 16-bit little-endian, 16 kHz PCM'e gerçekten dönüştür.
+- Parçalar arasında sürekliliği koruyan resampling kullan.
+- Yalnızca başlık veya sampleRate etiketi değiştirerek dönüştürme.
+- AudioWorklet kullan; gerekiyorsa ayrı statik dosya ekle.
+- Ham PCM'i Azure PushAudioInputStream'e aktar;
+  her parçaya WAV başlığı ekleme.
+- Sesin yerel hoparlöre geri verilerek yankı oluşturmasını önle.
+
+Backend:
+- Her oturum için bağımsız ConversationTranscriber oluştur.
+- transcribing: geçici metin; transcribed: kesinleşmiş metin.
+- speaker_id ve varsa offset/duration bilgilerini istemciye ilet.
+- Unknown konuşmacı etiketini dürüstçe göster; ID uydurma.
+- Geçici sonuçları güncelle; kesinleşmiş sonuçları tekrar
+  üretmeden listeye ekle.
+- SDK callback'lerinden WebSocket'e kontrolsüz eşzamanlı
+  yazma yapma; kuyruk ve tek gönderici yaklaşımı kullan.
+- Mikrofon oturumu boyunca mevcut ortak işlem kilidini koru.
+- Diğer konuşma işlemleri bu sırada açıklayıcı busy yanıtı alsın.
+
+Yaşam döngüsü:
+- Oturumu en fazla 60 saniyeyle sınırla; otomatik durdur.
+- Başarılı bağlantı/hazır sinyalinden önce ses gönderme.
+- Kullanıcı Durdur dediğinde son ses parçalarını gönder,
+  giriş akışını kapat ve son Azure sonuçlarını sınırlı süre bekle.
+- İşlemin bittiği onaylanmadan başarı gösterme.
+- İptal, timeout, mikrofon izni reddi, WebSocket kopması,
+  sekmenin kapanması ve SDK hatalarında kaynakları temizle.
+- Mikrofon track'lerini, AudioContext'i, stream'i ve
+  dinleyicileri temizle; kilidi mutlaka bırak.
+- Callback içinde bloklayarak stop bekleyip deadlock oluşturma.
+- Kuyruk/ses tamponlarına sınır koy; sınırsız bellek tüketme.
+- Yalnızca localhost geliştirme kullanımı hedefle;
+  izin verilmeyen WebSocket Origin değerlerini reddet.
+
+Arayüz:
+- Dinleniyor, bağlanıyor, durduruluyor ve hata durumları.
+- Geçici metin ile kesinleşmiş konuşmalar ayrı görünsün.
+- Konuşmacıları tutarlı etiket ve renklerle ayır.
+- Bunların gerçek kişi adı veya kalıcı kimlik olmadığını belirt.
+- Metni textContent ile göster.
+- Bağlantı kapanınca dinleme ve buton durumu doğru sıfırlansın.
+- Sonuçlar Durdur'a basmadan önce ekrana gelebilmeli.
+
+Testler:
+- Gerçek SDK yüzeyine uygun spec/mock kullan.
+- Ses formatı, parça sınırları ve süre dönüşümünü kontrol et.
+- Geçici/kesin sonuç ayrımı ve konuşmacı etiketleri.
+- Durdururken gelen son sonuçların korunması.
+- Süre sınırı, bağlantı kopması ve hata sonrası kilit temizliği.
+- Mevcut testlerin tamamı çalışmaya devam etsin.
+- Gerçek Azure çağrısı veya mikrofon erişimi yapma.
+- Mock testlerini gerçek canlı doğrulama olarak tanımlama.
+
+requirements.txt, README ve PROMPTS.md'yi güncelle.
+.env içeriğini okuma veya loglama.
+Commit/push/merge yapma.
+Sonunda mimariyi, çalıştırma komutunu, test sonuçlarını
+ve gerçek tarayıcıda kontrol edilecek noktaları açıkla.
+```
+
+## Kullanıcı tarafından bildirilen canlı diarization manuel doğrulaması
+
+```text
+Yalnızca Week-5-Task-1 içindeki README.md ve PROMPTS.md dosyalarını güncelle.
+
+Kullanıcı, gerçek tarayıcı/mikrofon ve Azure ile canlı diarization akışının düzgün çalıştığını ve mevcut özelliklerin çalışmaya devam ettiğini doğruladı. Bunu kullanıcı tarafından yapılan manuel doğrulama olarak kaydet; kendin gerçekleştirmiş gibi yazma. Ayrı ayrı bildirilmemiş test sonuçları ekleme.
+
+Uygulama kodunu değiştirme. Commit, push veya merge yapma.
+```

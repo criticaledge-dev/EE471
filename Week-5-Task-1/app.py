@@ -1,16 +1,37 @@
-"""Combined Speech Studio: TTS and STT routes."""
+"""Speech Studio HTTP APIs and localhost live diarization WebSocket."""
+
+import mimetypes
 
 from flask import Flask, Response, jsonify, render_template, request
+from flask_sock import Sock
 from werkzeug.exceptions import RequestEntityTooLarge
 
 from speech_service import (
     ConfigurationError, InvalidAudioError, LANGUAGES, MAX_FILE_BYTES,
-    MissingTranslationError, NoSpeechError, SpeechServiceError, VOICES,
+    MissingTranslationError, NoSpeechError, SpeechBusyError, SpeechServiceError, VOICES,
     TRANSLATION_PAIRS, assess_pronunciation, synthesize_speech, transcribe_pcm, translate_pcm, validate_wav,
 )
+from diarization_service import MAX_CHUNK_BYTES, allowed_origin, serve_diarization
 
+# Windows registry MIME mappings may label JavaScript as text/plain.
+# ES modules / AudioWorklet require a JavaScript MIME type.
+mimetypes.add_type("text/javascript", ".js")
+mimetypes.add_type("text/javascript", ".mjs")
 app = Flask(__name__)
 app.config["MAX_CONTENT_LENGTH"] = MAX_FILE_BYTES + 64 * 1024
+app.config["SOCK_SERVER_OPTIONS"] = {"max_message_size": MAX_CHUNK_BYTES, "ping_interval": 20}
+sock = Sock(app)
+
+
+@app.before_request
+def restrict_live_origin():
+    if request.path == "/ws/diarization" and not allowed_origin(request.headers.get("Origin"), request.host):
+        return jsonify(error="Canlı diarization yalnızca aynı localhost Origin üzerinden kullanılabilir."), 403
+
+
+@sock.route("/ws/diarization")
+def live_diarization(ws):
+    serve_diarization(ws)
 
 
 @app.get("/")
@@ -39,7 +60,7 @@ def text_to_speech():
     except ConfigurationError:
         return jsonify(error="Azure konuşma ayarları eksik. Sunucuda SPEECH_KEY ve SPEECH_REGION ayarlarını tamamlayın."), 503
     except SpeechServiceError as error:
-        return jsonify(error=error.public_message), 502
+        return jsonify(error=error.public_message), (409 if isinstance(error, SpeechBusyError) else 502)
     except Exception:
         # Do not expose or log exceptions that might contain credentials.
         return jsonify(error="Ses oluşturulamadı. Lütfen daha sonra tekrar deneyin."), 500
@@ -72,7 +93,7 @@ def speech_to_text():
     except NoSpeechError:
         return jsonify(error="Konuşma tanınamadı. Seçilen dilde net bir kayıt deneyin."), 422
     except SpeechServiceError as error:
-        return jsonify(error=error.public_message), 502
+        return jsonify(error=error.public_message), (409 if isinstance(error, SpeechBusyError) else 502)
     except Exception:
         # Neither log nor return raw exceptions, credentials or user content.
         return jsonify(error="Ses işlenemedi. Lütfen daha sonra tekrar deneyin."), 500
@@ -105,7 +126,7 @@ def speech_translation():
     except MissingTranslationError:
         return jsonify(error="Azure hedef dil için çeviri döndürmedi. Lütfen tekrar deneyin."), 502
     except SpeechServiceError as error:
-        return jsonify(error=error.public_message), 502
+        return jsonify(error=error.public_message), (409 if isinstance(error, SpeechBusyError) else 502)
     except Exception:
         return jsonify(error="Konuşma çevrilemedi. Lütfen daha sonra tekrar deneyin."), 500
     return jsonify(result)
@@ -137,7 +158,7 @@ def pronunciation_assessment():
     except NoSpeechError:
         return jsonify(error="Konuşma tanınamadı. İngilizce referans metni okuyarak net bir kayıt yükleyin."), 422
     except SpeechServiceError as error:
-        return jsonify(error=error.public_message), 502
+        return jsonify(error=error.public_message), (409 if isinstance(error, SpeechBusyError) else 502)
     except Exception:
         return jsonify(error="Telaffuz değerlendirmesi tamamlanamadı. Daha sonra tekrar deneyin."), 500
     return jsonify(result)

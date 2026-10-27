@@ -1,7 +1,7 @@
-# Speech Studio — TTS, STT, Translation ve Pronunciation Assessment
+# Speech Studio — TTS, STT, Translation, Pronunciation ve Live Diarization
 
 Tek Flask uygulamasında İngilizce (`en-US`) ve Türkçe (`tr-TR`) TTS, STT ve
-konuşmadan metne çeviri; ayrıca en-US referans metniyle telaffuz değerlendirmesi.
+konuşmadan metne çeviri; ayrıca en-US telaffuz değerlendirmesi ve canlı mikrofon diarization.
 TTS standart `en-US-JennyNeural` / `tr-TR-EmelNeural` seslerini kullanır;
 STT ve çeviri, dosyanın tamamını continuous recognition ile işler. Mikrofon erişimi gerekmez.
 
@@ -32,7 +32,7 @@ Sanal ortamı etkinleştirmek gerekmez. Import işlemi sunucuyu başlatmaz.
 
 ## Ortak yapılandırma ve sırayla çalışma
 
-`speech_service.py`, dört konuşma işlemi için ortak yapılandırmayı
+`speech_service.py`, konuşma işlemleri için ortak yapılandırmayı
 `Path(__file__).resolve().parent / ".env"` açık yolundan python-dotenv ile
 yükler. `override=False` sayesinde mevcut ortam değişkenleri önceliklidir.
 SDK `subscription=SPEECH_KEY`, `region=SPEECH_REGION` kullanır; endpoint
@@ -43,7 +43,7 @@ Anahtarlar, kullanıcı metni ve ham SDK hataları istemciye veya loglara
 aktarılmaz. Bu merge çözümünde gerçek `.env` okunmamış veya değiştirilmemiştir.
 
 F0 üzerinde eşzamanlı istekleri önlemek için arayüzde bir işlem sürerken
-tüm gönderim butonları devre dışı kalır. Sunucuda ortak kilit TTS, STT, çeviri ve telaffuz
+tüm başlatma/gönderim butonları devre dışı kalır. Sunucuda ortak kilit bütün konuşma
 SDK işlemlerini farklı istemcilerden gelseler bile sırayla çalıştırır.
 Bu kilit tek Python süreci kapsamındadır: yerel uygulamayı tek süreçle
 çalıştırın. Birden fazla worker/sunucu için ortak dış kuyruk gerekir.
@@ -198,9 +198,124 @@ servis/uygulama-temizliği hataları ve kilit kontrol edildi. Bunlar SDK spec'le
 ve sentetik Azure JSON'u ile çevrimdışı testlerdir; gerçek değerlendirme veya
 gerçek tarayıcı doğrulaması değildir. `.env` okunmadı ve Azure isteği yapılmadı.
 
+## Gerçek zamanlı mikrofon diarization — en-US
+
+Kullanıcı Azure kaynağını S0'a geçirmiştir; bu uygulama kaynak katmanını veya
+kaynağı değiştirmez. Aynı sunucu tarafı anahtar ve bölge kullanılır. Yeni küçük
+bağımlılık `flask-sock` olduğundan kurulumu güncelleyin:
+
+```powershell
+cd .\Week-5-Task-1
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe app.py
+```
+
+http://127.0.0.1:5000 veya http://localhost:5000 adresini kullanın. Tek Python
+süreciyle, yalnızca localhost geliştirme kullanımını hedefler. Mikrofon izni
+ve AudioWorklet için güncel tarayıcı gerekir. `Başlat` mikrofon izni ister;
+izin verilmeden medya akışı veya Azure oturumu açılmaz. `Durdur` son sesleri
+gönderir ve Azure oturum bitişini bekler. Dinleme sırasında sonuçlar görünür;
+bu özellik kaydı bitirip WAV yükleyen bir akış değildir.
+
+### Mimari ve protokol
+
+1. `getUserMedia` → gerçek `AudioContext.sampleRate` → `pcm-worklet.mjs`.
+2. `pcm-resampler.mjs`, kanalları mono toplar ve alan ağırlıklı, fazı/ara
+   toplamları bloklar arasında koruyan resampling ile 16 kHz üretir.
+3. Signed 16-bit little-endian ham PCM, 100 ms (3200 bayt) parçalarla
+   `/ws/diarization` Flask-Sock bağlantısına gönderilir; WAV başlığı eklenmez.
+4. Her WebSocket oturumu `diarization_service.py` içinde kendi
+   `ConversationTranscriber`, `PushAudioInputStream` ve dinleyicilerini oluşturur.
+5. `transcribing` tek geçici alanı günceller; `transcribed` kesinleşmiş sonuçları
+   sırayla ekler. Speaker ID, result ID ve varsa offset/duration gönderilir.
+   SDK zaman birimi 100 ns tick'ten milisaniyeye çevrilir.
+
+İstemci önce `{"type":"start","language":"en-US"}` gönderir. Backend hem
+`start_transcribing_async().get()` hem `session_started` sonrasında `ready`
+gönderir; istemci bu onaydan önce mikrofonu işleyiciye bağlamaz ve PCM yollamaz.
+`ready` mesajı PCM biçimini ve 60 saniye sınırını bildirir. Her ses parçasına
+`ack` verilir. Durdururken worklet son PCM parçasını gönderip `flushed` onayı
+verir; ardından istemci `{"type":"stop"}` yollar. Backend giriş akışını
+kapatıp son Azure sonuçlarını bekler. `completed`, ancak `session_stopped`,
+sonuçların gönderimi ve başarılı SDK temizliği sonrasında gönderilir.
+İstemci bu mesajdan önce başarı göstermez. Kopan/hatalı oturumda ekrandaki
+sonuçlar kısmi olabilir; hata açıkça belirtilir.
+
+SDK callback'leri socket'e yazmaz. En fazla 128 kesinleşmiş olay içeren kuyruk
+ve yalnızca en güncel geçici sonuç tutulur; tek WebSocket sahibi döngü gönderir.
+Sonuç sayısı, metin boyu, parça boyu (en fazla 6400 bayt), toplam PCM
+(1.920.000 bayt = 60 saniye) sınırlıdır. Tarayıcıda 4 adet ACK kredisi,
+1600 örnekli PCM tamponu ve 64 KiB WebSocket `bufferedAmount` sınırı vardır.
+Geri basınçta sınırsız tamponlamak veya sesi sessizce düşürmek yerine oturum
+hata verir. Resampling sonundaki eksik örnek aralığı en fazla bir 16 kHz örnektir.
+AudioWorklet çıkışı daima sıfırdır; mikrofon hoparlöre geri verilmez.
+
+### Yaşam döngüsü ve güvenlik
+
+Sunucu 60 saniyede `stop_requested` gönderir; istemci de süre/örnek sınırında
+otomatik durur. Son PCM için 3 saniye, kapatılan girişten sonra son Azure
+sonuçları için 10 saniye pay vardır. SDK başlatma/durdurma beklemeleri mevcut
+yardımcıda 5 saniye ile sınırlıdır; Azure hazır olma olayı en fazla 10 saniye
+beklenir. Durdurma SDK callback'inde bloklanmaz. Son stop sırasında gelen
+kesinleşmiş sonuçlar da kaybolmadan gönderilir. EOF normal iptali, servis
+hatasından `event.cancellation_details.reason/code` ile ayrılır.
+
+Oturum boyunca ortak kilit tutulur. Diğer geçerli TTS/STT/çeviri/telaffuz
+istekleri bekletilmeden **409 busy** ve açıklayıcı JSON alır; ikinci canlı
+oturum da reddedilir. Temizlik durdurmayı bekler, `disconnect_all()` ile
+yalnızca sahip olunan sinyalleri ayırır ve PCM akışını kapatır. Kilit ve canlı
+durum bayrağı `finally` içinde bırakılır. İzin reddi, WebSocket kopması,
+sekme kapanması, callback/SDK hatası ve timeout sonrasında track'ler, node,
+AudioContext ve dinleyiciler temizlenir. Sonuçlar veya anahtarlar loglanmaz.
+
+Yalnızca aynı localhost/127.0.0.1 Origin ve port kabul edilir; eksik, `null`,
+uzak veya farklı Origin WebSocket upgrade öncesinde 403 ile reddedilir.
+Sınırlı WebSocket mesaj boyu uygulanır. Bu yerel örnek, internete açık bir
+servis veya çok worker'lı dağıtım için tasarlanmamıştır.
+
+Azure'un `Guest-*`/speaker ID değerleri oturum içi etiketlerdir; gerçek kişi
+adı veya kalıcı kimlik değildir. `Unknown` açıkça gösterilir; ID uydurulmaz.
+Etiket rengi ID'ye göre tutarlıdır, fakat farklı kişiler aynı renge denk
+gelebilir. Kesin sonuçlar result ID ile tekilleştirilir; aynı sözün farklı
+konuşma segmentlerinde tekrar söylenmesi silinmez. Metinler `textContent`
+ile gösterilir; ara sonuç nihai listeye eklenmez.
+
+SDK 1.53.0 `ConversationTranscriber`, olay sınıfları ve cancellation yüzeyi
+yerel SDK kaynağından doğrulandı. Resmi kaynaklar:
+[Microsoft Python ConversationTranscriber örneği](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/conversation-transcription?tabs=python),
+[Flask-Sock API](https://flask-sock.readthedocs.io/en/latest/api.html).
+
+### Gerçek tarayıcıda kullanıcı tarafından kontrol edilecekler
+
+- İzin reddinde dinlemenin başlamaması; tekrar izin vererek başlatabilme.
+- İki kişinin en-US konuşmasında geçici/nihai sonuçların Durdur öncesi görünmesi;
+  Unknown'dan Guest ID'lerine geçişin ve etiket tutarlılığının gözlenmesi.
+- Durdur'a yakın son cümlenin korunması ve yalnızca tamamlanma onayında başarı.
+- 60 saniyelik otomatik durdurma; sekme/ağ kopmasında mikrofonun kapanması.
+- Canlı oturumda diğer API'lerin 409 vermesi; bitince yeniden kullanılabilmesi.
+- 44.1/48 kHz mikrofon/AudioContext ile anlaşılır sonuç ve yerel yankı olmaması.
+
+Geliştirme sırasında asistan gerçek mikrofon, tarayıcı veya Azure testi yapmadı.
+PCM, worklet, sahte DOM/WebSocket ve SDK-spec testleri gerçek canlı doğrulama değildir.
+
+### Kullanıcının bildirdiği manuel doğrulama
+
+Kullanıcı, gerçek tarayıcı/mikrofon ve Azure ile canlı diarization akışının
+düzgün çalıştığını ve mevcut özelliklerin çalışmaya devam ettiğini doğruladı.
+Bu manuel doğrulama kullanıcı tarafından yapıldı; asistan tarafından yapılmadı.
+Yukarıdaki kontrol listesinin maddeleri ayrı ayrı doğrulanmış olarak kaydedilmemiştir.
+
+Önceki otomatik kontrol sonucu: mevcut testler dahil **80 Python testi ve 14 Node.js mock/PCM testi
+geçti**. Testlerde 16/44.1/48/96 kHz giriş, blok sınırı sürekliliği, süre/byte
+dönüşümü, little-endian PCM, sessiz worklet çıkışı, ACK tampon sınırı,
+ready/flush/stop sırası, geçici/nihai sonuç ayrımı, son stop sonucu,
+bağımsız oturumlar, Origin, 60 saniye sınırı, kopma ve kilit temizliği sınandı.
+Windows MIME eşlemesi nedeniyle `.js`/`.mjs` için `text/javascript` açıkça
+tanımlandı ve statik dosyaların bu MIME türüyle sunulduğu doğrulandı.
+
 ## Arayüz ve hatalar
 
-`GET /` aynı sayfada ayrı TTS, STT, Speech Translation ve Pronunciation Assessment bölümlerini sunar. DOM kimlikleri,
+`GET /` aynı sayfada TTS, STT, Speech Translation, Pronunciation Assessment ve Live Diarization bölümlerini sunar. DOM kimlikleri,
 sonuç, hata ve bekleme alanları bölüm bazında ayrıdır. Yeni istekte ilgili
 bölümün önceki sonucu temizlenir; başarısız istek eski sonucu göstermez.
 Eski WAV/TXT object URL'leri bırakılır. STT metni `textContent` ile yerleştirilir;
@@ -210,13 +325,14 @@ bağlam ve tarayıcı izni gerekir; izin yoksa indirme veya elle kopyalama yapı
 Çeviri bölümünde kaynak ve hedef dil seçilir; kaynak değişince karşı hedef dil
 önerilir. Geçersiz eşleşmeler backend tarafından reddedilir. Tanınan orijinal
 metin ve çeviri ayrı alanlara `textContent` ile yerleştirilir. Ortak gönderim
-engeli dört bölümü de kapsar; hata sonrasında yeniden kullanım mümkündür.
+engeli tüm bölümleri kapsar; hata sonrasında yeniden kullanım mümkündür.
 
 Hata yanıtları `{"error":"..."}` biçimindedir:
 
 | Durum | HTTP |
 | --- | --- |
 | Geçersiz JSON, metin/referans, dosya, biçim, süre veya dil | 400 |
+| Canlı mikrofon oturumu nedeniyle konuşma servisi meşgul | 409 |
 | Dosya/istek boyut sınırı aşıldı | 413 |
 | STT/çeviri konuşmayı tanıyamadı veya boş kaynak metin döndü | 422 |
 | Azure ayarları eksik | 503 |
@@ -344,6 +460,7 @@ deneme bildirimi ile düzeltmenin çevrimdışı doğrulaması birbirinden ayrı
 ```powershell
 .\.venv\Scripts\python.exe -B -m unittest discover -s tests -v
 node --test tests/test_ui.cjs
+node --test tests/test_pcm.cjs tests/test_live_ui.cjs
 ```
 
 Node.js yalnızca bağımlılıksız arayüz mock testleri içindir; uygulamayı

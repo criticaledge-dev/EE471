@@ -24,12 +24,17 @@ SDK_OPERATION_TIMEOUT_SECONDS = 5
 
 # Shared across all clients and both operations in this server process.
 _speech_lock = Lock()
+_live_session_active = Event()
 
 
 def serialized_speech(operation):
     @wraps(operation)
     def run(*args, **kwargs):
+        if _live_session_active.is_set():
+            raise SpeechBusyError()
         with _speech_lock:
+            if _live_session_active.is_set():
+                raise SpeechBusyError()
             return operation(*args, **kwargs)
     return run
 
@@ -56,6 +61,11 @@ class SpeechServiceError(Exception):
     def __init__(self, public_message):
         super().__init__(public_message)
         self.public_message = public_message
+
+
+class SpeechBusyError(SpeechServiceError):
+    def __init__(self):
+        super().__init__("Konuşma servisi meşgul. Canlı mikrofon oturumunu durdurup tekrar deneyin.")
 
 
 @dataclass(frozen=True)
