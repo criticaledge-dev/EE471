@@ -6,7 +6,7 @@ from werkzeug.exceptions import RequestEntityTooLarge
 from speech_service import (
     ConfigurationError, InvalidAudioError, LANGUAGES, MAX_FILE_BYTES,
     MissingTranslationError, NoSpeechError, SpeechServiceError, VOICES,
-    TRANSLATION_PAIRS, synthesize_speech, transcribe_pcm, translate_pcm, validate_wav,
+    TRANSLATION_PAIRS, assess_pronunciation, synthesize_speech, transcribe_pcm, translate_pcm, validate_wav,
 )
 
 app = Flask(__name__)
@@ -108,6 +108,38 @@ def speech_translation():
         return jsonify(error=error.public_message), 502
     except Exception:
         return jsonify(error="Konuşma çevrilemedi. Lütfen daha sonra tekrar deneyin."), 500
+    return jsonify(result)
+
+
+@app.post("/api/pronunciation")
+def pronunciation_assessment():
+    if request.mimetype != "multipart/form-data":
+        return jsonify(error="audio, reference_text ve language alanlarını multipart/form-data olarak gönderin."), 400
+    language = request.form.get("language", "")
+    reference = request.form.get("reference_text")
+    if language != "en-US":
+        return jsonify(error="Telaffuz değerlendirmesi yalnızca en-US destekler."), 400
+    if not isinstance(reference, str) or not reference.strip() or len(reference) > 500:
+        return jsonify(error="Referans metin boş olmayan, en fazla 500 karakterlik bir string olmalıdır."), 400
+    upload = request.files.get("audio")
+    if upload is None or not upload.filename:
+        return jsonify(error="Bir WAV dosyası seçin (audio alanı)."), 400
+    data = upload.read(MAX_FILE_BYTES + 1)
+    if len(data) > MAX_FILE_BYTES:
+        return oversized_request(None)
+    try:
+        pcm = validate_wav(data)
+        result = assess_pronunciation(pcm, reference, language)
+    except InvalidAudioError as error:
+        return jsonify(error=str(error)), 400
+    except ConfigurationError:
+        return jsonify(error="Azure ayarları eksik. Sunucuda SPEECH_KEY ve SPEECH_REGION ayarlarını tamamlayın."), 503
+    except NoSpeechError:
+        return jsonify(error="Konuşma tanınamadı. İngilizce referans metni okuyarak net bir kayıt yükleyin."), 422
+    except SpeechServiceError as error:
+        return jsonify(error=error.public_message), 502
+    except Exception:
+        return jsonify(error="Telaffuz değerlendirmesi tamamlanamadı. Daha sonra tekrar deneyin."), 500
     return jsonify(result)
 
 

@@ -512,3 +512,80 @@ Gerçek Azure çağrısı yapma.
 Commit/push/merge yapma.
 Sonunda exception'ı, nedenini ve test sonuçlarını açıkla.
 ```
+
+## Part 4 — Pronunciation Assessment
+
+```text
+Week 5 Task 1 Part 4: Pronunciation Assessment ekle.
+
+Aktif branch speech-extensions olmalı.
+Yalnızca Week-5-Task-1 içinde çalış.
+Önce mevcut uygulamayı ve testleri incele.
+
+Çalışan TTS, STT ve çeviriyi koru.
+Diarization bu aşamada eklenmeyecek.
+
+Özellik:
+- Kullanıcı İngilizce referans metin girip kendi WAV kaydını
+  yükleyerek Azure telaffuz değerlendirmesi alabilsin.
+- İlk sürüm yalnızca en-US desteklesin.
+- POST /api/pronunciation multipart/form-data kabul et:
+  audio, reference_text, language.
+- Mevcut WAV doğrulamasını kullan:
+  PCM 16-bit mono 16 kHz, en fazla 30 saniye ve 1 MiB.
+- Referans metin boş olmayan string, en fazla 500 karakter olsun.
+
+Azure:
+- Güncel resmi Microsoft Python örneklerini incele.
+- SpeechRecognizer ile PronunciationAssessmentConfig kullan.
+- Yapılandırmayı recognizer'a apply_to ile uygula.
+- HundredMark değerlendirme sistemini kullan.
+- Gerçek Azure değerlendirme sonuçlarını döndür;
+  metin benzerliği veya uydurma puan kullanma.
+- Prosody ve content assessment gibi ek özellikleri açma.
+- Speech SDK 1.53.0'ın gerçek API yüzeyini doğrula;
+  önceki hatalardaki gibi SDK'da olmayan metot/alan kullanma.
+- Ortak yapılandırmayı ve işlem kilidini kullan.
+- .env içeriğini okuma veya loglama.
+
+Dosyanın tamamının işlenmesi:
+- İlk duraklamada kalan sesi sessizce atlama.
+- Çok parçalı değerlendirme için resmi continuous assessment
+  örneğindeki yaklaşımı izle.
+- Yalnızca kesinleşmiş sonuçları sırayla topla.
+- Tek sonuç için mevcut accuracy, fluency, completeness ve
+  pronunciation puanlarını göster.
+- Çok sonuç varsa segment değerlendirmelerini koru.
+- Tüm kayıt puanı hesaplayacaksan resmi belgelenmiş
+  birleştirme yöntemini uygula; basit ortalama veya yeni
+  formül uydurma. Güvenilir toplam üretilemiyorsa toplam
+  yerine segment puanları göster ve kapsamını açıkla.
+- Eksik değerlendirmeyi tam kayıt başarısı diye sunma.
+- Desteklenmeyen/gelmeyen puanı 0 olarak uydurma.
+- Timeout, iptal, sessiz kayıt, callback ve temizlik
+  hatalarını yönet; kilidi her durumda bırak.
+- Çalışan STT/çeviri callback davranışlarını bozma.
+
+Arayüz:
+- Ayrı Pronunciation Assessment bölümü ekle.
+- Referans metin alanı, WAV yükleme, en-US bilgisi,
+  değerlendirme butonu ve sonuç alanı olsun.
+- Puanları adlarıyla ve 0–100 ölçeğiyle göster.
+- Kelime değerlendirmeleri varsa anlaşılır bir tabloda sun.
+- Yükleniyor ve hata durumları diğer bölümlerle tutarlı olsun.
+- Referans metni ve sonuçları textContent ile yerleştir.
+- TTS kaydı yalnızca teknik test için kullanılabilir;
+  kullanıcının kendi telaffuzunu değerlendirdiğini iddia etme.
+
+Test:
+- Gerçek SDK yüzeyine uygun mock/spec kullan.
+- Başarı, geçersiz referans/dil/WAV, sessiz kayıt,
+  servis hatası ve kilit temizliğini test et.
+- Çok sonuç varsa sıralamanın ve kapsamın korunduğunu doğrula.
+- Mevcut bütün testleri çalıştır.
+- Gerçek Azure çağrısı yapma.
+
+README ve PROMPTS.md'yi güncelle.
+Commit/push/merge yapma.
+Sonunda değişiklikleri, sonuç şemasını ve testleri özetle.
+```

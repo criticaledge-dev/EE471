@@ -6,7 +6,117 @@ function setSpeechBusy(busy) {
   document.getElementById("tts-generate").disabled = busy;
   document.getElementById("stt-transcribe").disabled = busy;
   document.getElementById("translation-submit").disabled = busy;
+  document.getElementById("pronunciation-submit").disabled = busy;
 }
+
+(() => {
+  const form = document.getElementById("pronunciation-form");
+  const status = document.getElementById("pronunciation-status");
+  const error = document.getElementById("pronunciation-error");
+  const result = document.getElementById("pronunciation-result");
+  const reference = document.getElementById("pronunciation-reference-result");
+  const scope = document.getElementById("pronunciation-scope");
+  const segments = document.getElementById("pronunciation-segments");
+  const scoreLabel = { accuracy: "Accuracy", fluency: "Fluency", completeness: "Completeness", pronunciation: "Pronunciation" };
+
+  function clearResult() {
+    result.hidden = true;
+    reference.textContent = "";
+    scope.textContent = "";
+    segments.replaceChildren();
+  }
+
+  function add(parent, tag, text) {
+    const element = document.createElement(tag);
+    element.textContent = text;
+    parent.appendChild(element);
+    return element;
+  }
+
+  function score(value) {
+    return typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 100
+      ? `${value} / 100` : "Azure tarafından döndürülmedi";
+  }
+
+  function render(body) {
+    if (!body || body.session_complete !== true || !Array.isArray(body.segments) || !body.segments.length) {
+      throw new Error("Tamamlanmış bir değerlendirme sonucu alınamadı.");
+    }
+    reference.textContent = body.reference_text;
+    scope.textContent = `Kapsam: ${body.segments.length === 1 ? "tek segment" : "segment bazında"}; tüm kayıt için toplam puan yok. `
+      + (body.assessment_complete ? "" : "Değerlendirme eksik. ")
+      + (Array.isArray(body.warnings) ? body.warnings.join(" ") : "");
+    for (const segment of body.segments) {
+      const section = document.createElement("section");
+      section.className = "assessment-segment";
+      add(section, "h3", `Segment ${segment.index}`);
+      add(section, "p", segment.text);
+      const scores = document.createElement("div");
+      scores.className = "scores";
+      for (const [key, label] of Object.entries(scoreLabel)) {
+        add(scores, "p", `${label}: ${score(segment.scores?.[key])}`);
+      }
+      section.appendChild(scores);
+      if (Array.isArray(segment.words) && segment.words.length) {
+        const scroll = document.createElement("div");
+        scroll.className = "table-scroll";
+        const table = document.createElement("table");
+        add(table, "caption", "Azure kelime değerlendirmesi");
+        const header = document.createElement("tr");
+        for (const title of ["Kelime", "Accuracy (0–100)", "Azure hata türü"]) {
+          const cell = add(header, "th", title);
+          cell.scope = "col";
+        }
+        const head = document.createElement("thead");
+        head.appendChild(header);
+        table.appendChild(head);
+        const rows = document.createElement("tbody");
+        for (const word of segment.words) {
+          const row = document.createElement("tr");
+          add(row, "td", word.word);
+          add(row, "td", score(word.accuracy));
+          add(row, "td", word.error_type ?? "Döndürülmedi");
+          rows.appendChild(row);
+        }
+        table.appendChild(rows);
+        scroll.appendChild(table);
+        section.appendChild(scroll);
+      } else {
+        add(section, "p", "Kelime ayrıntısı döndürülmedi.");
+      }
+      segments.appendChild(section);
+    }
+    result.hidden = false;
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (speechBusy) return;
+    clearResult();
+    error.hidden = true;
+    error.textContent = "";
+    setSpeechBusy(true);
+    form.setAttribute("aria-busy", "true");
+    status.textContent = "Telaffuz değerlendiriliyor…";
+    try {
+      const response = await fetch("/api/pronunciation", { method: "POST", body: new FormData(form) });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(body && typeof body.error === "string" ? body.error : "Telaffuz değerlendirilemedi.");
+      }
+      render(body);
+      status.textContent = body.assessment_complete ? "Segment değerlendirmeleri hazır." : "Eksik değerlendirme: kapsam ve eksik puanları inceleyin.";
+    } catch (failure) {
+      clearResult();
+      status.textContent = "";
+      error.textContent = failure instanceof TypeError ? "Sunucuya ulaşılamadı. Tekrar deneyin." : failure.message;
+      error.hidden = false;
+    } finally {
+      setSpeechBusy(false);
+      form.removeAttribute("aria-busy");
+    }
+  });
+})();
 
 (() => {
   const form = document.getElementById("translation-form");

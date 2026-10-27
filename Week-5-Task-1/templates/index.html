@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Speech Studio — TTS, STT &amp; Translation</title>
+  <title>Speech Studio — TTS, STT, Translation &amp; Pronunciation</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
   <script defer src="{{ url_for('static', filename='script.js') }}"></script>
 </head>
@@ -84,6 +84,29 @@
         <p id="translation-original" class="transcript"></p>
         <h3>Çeviri</h3>
         <p id="translation-text" class="transcript"></p>
+      </section>
+    </section>
+    <section aria-labelledby="pronunciation-heading">
+      <h2 id="pronunciation-heading">Pronunciation Assessment</h2>
+      <p>İngilizce referans metni okuyup kendi WAV kaydınızı yükleyin. Yalnızca en-US.</p>
+      <p class="notice">PCM WAV: 16-bit, mono, 16 kHz; en fazla 30 saniye ve 1 MiB.
+        Azure segment puanları 0–100 ölçeğinde gösterilir. Çok parçalı kayıtta toplam puan hesaplanmaz.
+        TTS kaydı yalnızca teknik test içindir; sizin telaffuzunuzu değerlendirmez.</p>
+      <form id="pronunciation-form">
+        <label for="pronunciation-reference">İngilizce referans metin (en fazla 500 karakter)</label>
+        <textarea id="pronunciation-reference" name="reference_text" rows="4" maxlength="500" required></textarea>
+        <label for="pronunciation-audio">Kendi WAV kaydınız</label>
+        <input id="pronunciation-audio" name="audio" type="file" accept=".wav,audio/wav" required>
+        <input name="language" type="hidden" value="en-US">
+        <button id="pronunciation-submit" type="submit">Assess Pronunciation</button>
+      </form>
+      <p id="pronunciation-status" role="status" aria-live="polite"></p>
+      <p id="pronunciation-error" class="error" role="alert" hidden></p>
+      <section id="pronunciation-result" aria-label="Telaffuz değerlendirmesi sonucu" hidden>
+        <h3>Gönderilen referans</h3>
+        <p id="pronunciation-reference-result" class="transcript"></p>
+        <p id="pronunciation-scope" class="notice"></p>
+        <div id="pronunciation-segments"></div>
       </section>
     </section>
     </div>

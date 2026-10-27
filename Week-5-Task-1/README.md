@@ -1,7 +1,7 @@
-# Speech Studio — TTS, STT ve Speech Translation
+# Speech Studio — TTS, STT, Translation ve Pronunciation Assessment
 
 Tek Flask uygulamasında İngilizce (`en-US`) ve Türkçe (`tr-TR`) TTS, STT ve
-konuşmadan metne çeviri.
+konuşmadan metne çeviri; ayrıca en-US referans metniyle telaffuz değerlendirmesi.
 TTS standart `en-US-JennyNeural` / `tr-TR-EmelNeural` seslerini kullanır;
 STT ve çeviri, dosyanın tamamını continuous recognition ile işler. Mikrofon erişimi gerekmez.
 
@@ -32,7 +32,7 @@ Sanal ortamı etkinleştirmek gerekmez. Import işlemi sunucuyu başlatmaz.
 
 ## Ortak yapılandırma ve sırayla çalışma
 
-`speech_service.py`, üç konuşma işlemi için ortak yapılandırmayı
+`speech_service.py`, dört konuşma işlemi için ortak yapılandırmayı
 `Path(__file__).resolve().parent / ".env"` açık yolundan python-dotenv ile
 yükler. `override=False` sayesinde mevcut ortam değişkenleri önceliklidir.
 SDK `subscription=SPEECH_KEY`, `region=SPEECH_REGION` kullanır; endpoint
@@ -43,7 +43,7 @@ Anahtarlar, kullanıcı metni ve ham SDK hataları istemciye veya loglara
 aktarılmaz. Bu merge çözümünde gerçek `.env` okunmamış veya değiştirilmemiştir.
 
 F0 üzerinde eşzamanlı istekleri önlemek için arayüzde bir işlem sürerken
-tüm gönderim butonları devre dışı kalır. Sunucuda ortak kilit TTS, STT ve çeviri
+tüm gönderim butonları devre dışı kalır. Sunucuda ortak kilit TTS, STT, çeviri ve telaffuz
 SDK işlemlerini farklı istemcilerden gelseler bile sırayla çalıştırır.
 Bu kilit tek Python süreci kapsamındadır: yerel uygulamayı tek süreçle
 çalıştırın. Birden fazla worker/sunucu için ortak dış kuyruk gerekir.
@@ -129,9 +129,78 @@ dili kısa kod (`en`, `tr`) kullanır. Kaynak:
 [Azure gerçek zamanlı konuşma çevirisi dil desteği](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/language-support?tabs=speech-translation#real-time-speech-translation).
 SDK kullanımı: [konuşma çevirisi rehberi](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/how-to-translate-speech).
 
+## Pronunciation Assessment — en-US telaffuz değerlendirmesi
+
+Kendi İngilizce WAV kaydınızı ve okuduğunuz referans metni gönderin.
+`POST /api/pronunciation`, `multipart/form-data` olarak şu alanları alır:
+
+| Alan | Kural |
+| --- | --- |
+| `audio` | Mevcut ortak doğrulama: PCM 16-bit mono 16 kHz WAV, en fazla 30 saniye / 1 MiB |
+| `reference_text` | Boş olmayan string; ham uzunluğu en fazla 500 karakter |
+| `language` | Yalnızca `en-US` |
+
+SDK `SpeechRecognizer` ve `PronunciationAssessmentConfig` kullanır.
+`HundredMark`, `Word` granularity ve `enable_miscue=False` seçilir;
+`apply_to(recognizer)` tanıma başlamadan çağrılır. Prosody/content açılmaz.
+Continuous modda yalnızca kesinleşmiş sonuçlar toplanır; ilk duraklamada
+dosyanın kalanı atılmaz. Mevcut timeout, iptal, callback ve temizlik yönetimi
+ve ortak işlem kilidi kullanılır. TTS/STT/çeviri callback'leri varsayılan
+parametreleriyle çalışmaya devam eder; yeni assessment hook'ları yalnızca
+bu özellikte etkinleşir.
+
+Resmi Python continuous assessment örneğinin yapılandırma, `apply_to`,
+kesinleşmiş segment ve servis JSON'u yaklaşımı incelendi. Tüm kayıt puanını
+birleştiren algoritma bu sürüme alınmadı; basit ortalama/formül kullanılmaz.
+Referans ile metin benzerliğinden puan veya yerel Omission/Insertion etiketi
+üretilmez. Puanların kaynağı Azure'un `NBest[0].PronunciationAssessment`
+ve kelime ayrıntılarıdır. SDK 1.53.0'da `SpeechRecognitionResult.properties`
+bir dict'tir; JSON `SpeechServiceResponse_JsonResult` anahtarından okunur.
+
+### Sonuç şeması ve kapsam
+
+| Alan | Anlamı |
+| --- | --- |
+| `language`, `reference_text`, `recognized_text` | Dil, gönderilen referans ve sıralı kesinleşmiş metin |
+| `score_scale` | `100`; her gösterilen puan 0–100 aralığındadır |
+| `session_complete` | Yalnızca oturum normal sonlanıp temizlik tamamlanırsa `true` |
+| `scope` | Tek sonuçta `single_segment`, çok sonuçta `segments_only` |
+| `overall_scores` | Her zaman `null`; tüm kayıt için toplam puan üretilmez |
+| `segments` | Geliş sırasıyla segmentler; `index`, `text`, `scores`, `words`, `assessment_complete` |
+| `segments[i].scores` | Azure'dan gelen `accuracy`, `fluency`, `completeness`, `pronunciation` |
+| `segments[i].words` | Varsa `word`, `accuracy`, `error_type`; anlaşılır kelime tablosunda gösterilir |
+| `assessment_complete` | Tüm segmentlerde dört puan mevcut ve tanınamayan bölüm yoksa `true` |
+| `unassessed_segments` | NoMatch veya boş kesinleşmiş sonuç sayısı |
+| `warnings` | Segment kapsamı ve eksik değerlendirme açıklamaları |
+
+Tek segmentte de dört puan adlarıyla gösterilir; tüm referans/kayıt için
+yeniden hesaplanmış toplam olduğu iddia edilmez. Çok segmentte her puan
+kendi segmentinde kalır. `assessment_complete`, referansın tamamının doğru
+okunduğu anlamına gelmez; yalnızca dönen değerlendirme alanlarının kapsamını
+belirtir. Sessiz/hiç tanınmayan kayıt 422; kullanılabilir değerlendirme hiç
+gelmezse veya geçersizse 502 döner. Bazı puanlar gelmezse `null` ve açık eksik
+değerlendirme uyarısı gösterilir; 0 uydurulmaz. Azure gerçekten 0 döndürürse
+korunur. Omission için geçersiz olan kelime accuracy puanı gösterilmez.
+Timeout/servis hatasında segmentler kısmi başarı olarak döndürülmez.
+
+Arayüzde referans ve sonuçlar `textContent` ile gösterilir. TTS WAV kaydı
+yalnızca teknik biçim/servis denemesi içindir; kullanıcının kendi telaffuzunu
+değerlendirdiğini göstermez. Kullanıcı kendi kaydını yüklemelidir.
+
+Resmi kaynaklar (27 Ekim 2026 tarihinde incelendi):
+[Microsoft Python continuous assessment örneği](https://github.com/Azure-Samples/cognitive-services-speech-sdk/blob/master/scenarios/python/console/language-learning/pronunciation_assessment.py),
+[Pronunciation Assessment rehberi](https://learn.microsoft.com/en-us/azure/ai-services/speech-service/how-to-pronunciation-assessment).
+
+Pronunciation eklemesi sonrasında mevcut testler dahil **69 Python testi ve
+7 arayüz mock testi geçti**. Çok segmentli sıra/kapsam, eksik puanlar, gerçek
+sıfırın korunması, geçersiz referans/dil/WAV, sessizlik, timeout/iptal,
+servis/uygulama-temizliği hataları ve kilit kontrol edildi. Bunlar SDK spec'leri
+ve sentetik Azure JSON'u ile çevrimdışı testlerdir; gerçek değerlendirme veya
+gerçek tarayıcı doğrulaması değildir. `.env` okunmadı ve Azure isteği yapılmadı.
+
 ## Arayüz ve hatalar
 
-`GET /` aynı sayfada ayrı TTS, STT ve Speech Translation bölümlerini sunar. DOM kimlikleri,
+`GET /` aynı sayfada ayrı TTS, STT, Speech Translation ve Pronunciation Assessment bölümlerini sunar. DOM kimlikleri,
 sonuç, hata ve bekleme alanları bölüm bazında ayrıdır. Yeni istekte ilgili
 bölümün önceki sonucu temizlenir; başarısız istek eski sonucu göstermez.
 Eski WAV/TXT object URL'leri bırakılır. STT metni `textContent` ile yerleştirilir;
@@ -141,13 +210,13 @@ bağlam ve tarayıcı izni gerekir; izin yoksa indirme veya elle kopyalama yapı
 Çeviri bölümünde kaynak ve hedef dil seçilir; kaynak değişince karşı hedef dil
 önerilir. Geçersiz eşleşmeler backend tarafından reddedilir. Tanınan orijinal
 metin ve çeviri ayrı alanlara `textContent` ile yerleştirilir. Ortak gönderim
-engeli üç bölümü de kapsar; hata sonrasında yeniden kullanım mümkündür.
+engeli dört bölümü de kapsar; hata sonrasında yeniden kullanım mümkündür.
 
 Hata yanıtları `{"error":"..."}` biçimindedir:
 
 | Durum | HTTP |
 | --- | --- |
-| Geçersiz JSON, metin, dosya, biçim, süre veya dil | 400 |
+| Geçersiz JSON, metin/referans, dosya, biçim, süre veya dil | 400 |
 | Dosya/istek boyut sınırı aşıldı | 413 |
 | STT/çeviri konuşmayı tanıyamadı veya boş kaynak metin döndü | 422 |
 | Azure ayarları eksik | 503 |

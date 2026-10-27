@@ -13,20 +13,25 @@ function setup() {
     "stt-transcribe", "stt-status", "stt-error", "stt-result", "stt-transcript",
     "stt-download", "stt-copy", "translation-form", "translation-submit",
     "translation-source", "translation-target", "translation-status",
-    "translation-error", "translation-result", "translation-original", "translation-text"];
+    "translation-error", "translation-result", "translation-original", "translation-text",
+    "pronunciation-form", "pronunciation-submit", "pronunciation-status", "pronunciation-error",
+    "pronunciation-result", "pronunciation-reference-result", "pronunciation-scope", "pronunciation-segments"];
   const elements = Object.fromEntries(ids.map(id => [id, {
-    textContent: "", hidden: false, disabled: false, value: "",
+    textContent: "", hidden: false, disabled: false, value: "", children: [],
     addEventListener(name, callback) { this[name] = callback; },
     setAttribute(name, value) { this[name] = value; },
     removeAttribute(name) { delete this[name]; },
     pause() {}, load() {},
+    appendChild(child) { this.children.push(child); return child; },
+    replaceChildren() { this.children = []; },
   }]));
   elements["tts-text"].value = "Hello world";
   elements["tts-language"].value = "en-US";
   const requests = [], revoked = [], copied = [], urls = [];
   const unload = [];
   const context = {
-    document: { getElementById: id => {
+    document: { createElement: tag => ({ tagName: tag, textContent: "", children: [],
+      appendChild(child) { this.children.push(child); return child; } }), getElementById: id => {
       assert.ok(elements[id], `Unexpected DOM id: ${id}`);
       return elements[id];
     } },
@@ -186,4 +191,67 @@ test("translation rejects incomplete success and releases controls after a netwo
   assert.equal(e["translation-submit"].disabled, false);
   assert.equal(e["tts-generate"].disabled, false);
   assert.equal(e["stt-transcribe"].disabled, false);
+});
+
+test("pronunciation renders named segment scores/word table safely and permits retry", async () => {
+  const ui = setup(), e = ui.elements;
+  const buttons = ["tts-generate", "stt-transcribe", "translation-submit", "pronunciation-submit"];
+  const fixture = {
+    reference_text: "<b>Reference</b>", session_complete: true, assessment_complete: false,
+    score_scale: 100, scope: "segments_only", overall_scores: null,
+    warnings: ["Fixture warning"], segments: [{ index: 1, text: "<script>literal</script>",
+      scores: { accuracy: 90, fluency: 80, completeness: null, pronunciation: 85 },
+      words: [{ word: "<img>", accuracy: null, error_type: "None" }],
+    }, { index: 2, text: "Second", scores: { accuracy: 70 }, words: [] }],
+  };
+  let work = ui.submit("pronunciation");
+  for (const id of buttons) assert.equal(e[id].disabled, true);
+  for (const kind of ["tts", "stt", "translation", "pronunciation"]) await ui.submit(kind);
+  assert.equal(ui.requests.length, 1);
+  assert.equal(ui.requests[0].url, "/api/pronunciation");
+  assert.equal(ui.requests[0].options.body.form, e["pronunciation-form"]);
+  ui.requests[0].resolve({ ok: true, json: async () => fixture });
+  await work;
+  assert.equal(e["pronunciation-reference-result"].textContent, "<b>Reference</b>");
+  assert.equal(e["pronunciation-result"].hidden, false);
+  assert.equal(e["pronunciation-segments"].children.length, 2);
+  const all = [];
+  function visit(node) { all.push(node); for (const child of node.children || []) visit(child); }
+  visit(e["pronunciation-segments"]);
+  const texts = all.map(node => node.textContent);
+  assert.ok(texts.includes("<script>literal</script>"));
+  assert.ok(texts.includes("<img>"));
+  assert.ok(texts.includes("Accuracy: 90 / 100"));
+  assert.ok(texts.includes("Completeness: Azure tarafından döndürülmedi"));
+  assert.ok(all.some(node => node.tagName === "table"));
+  assert.ok(e["pronunciation-scope"].textContent.includes("Değerlendirme eksik"));
+  for (const id of buttons) assert.equal(e[id].disabled, false);
+  work = ui.submit("pronunciation");
+  assert.equal(e["pronunciation-result"].hidden, true);
+  assert.equal(e["pronunciation-segments"].children.length, 0);
+  ui.requests[1].resolve(errorResponse());
+  await work;
+  assert.equal(e["pronunciation-error"].hidden, false);
+  assert.equal(e["pronunciation-result"].hidden, true);
+  for (const id of buttons) assert.equal(e[id].disabled, false);
+  work = ui.submit("pronunciation");
+  ui.requests[2].resolve({ ok: true, json: async () => fixture });
+  await work;
+  assert.equal(e["pronunciation-result"].hidden, false);
+  assert.equal(e["pronunciation-error"].hidden, true);
+  work = ui.submit("tts");
+  await ui.submit("pronunciation");
+  assert.equal(ui.requests.length, 4);
+  ui.requests[3].resolve(wavResponse());
+  await work;
+});
+
+test("pronunciation cannot show a noncompleted session as success", async () => {
+  const ui = setup(), e = ui.elements;
+  const work = ui.submit("pronunciation");
+  ui.requests[0].resolve({ ok: true, json: async () => ({ session_complete: false, segments: [] }) });
+  await work;
+  assert.equal(e["pronunciation-error"].hidden, false);
+  assert.equal(e["pronunciation-result"].hidden, true);
+  assert.equal(e["pronunciation-submit"].disabled, false);
 });

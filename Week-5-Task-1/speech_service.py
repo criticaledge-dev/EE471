@@ -1,6 +1,8 @@
 """Shared configuration, serialized Azure TTS/STT and strict WAV validation."""
 
 import os
+import json
+import math
 from dataclasses import dataclass, field
 from functools import wraps
 from pathlib import Path
@@ -190,7 +192,7 @@ def _wait_sdk_operation(operation):
         raise SpeechServiceError("Azure tanıma işlemi başlatılamadı veya durdurulamadı.") from None
 
 
-def _continuous_pcm(config, pcm, target_language=None):
+def _continuous_pcm(config, pcm, target_language=None, *, configure_recognizer=None, on_final=None, on_no_match=None):
     """Collect final segments until session_stopped; never return partial success."""
     done = Event()
     state_lock = Lock()
@@ -220,6 +222,8 @@ def _continuous_pcm(config, pcm, target_language=None):
     def recognized(event):
         result = event.result
         if result.reason == speechsdk.ResultReason.NoMatch:
+            if on_no_match is not None:
+                on_no_match()
             return  # Silence between utterances is not the end of the file.
         expected = (speechsdk.ResultReason.TranslatedSpeech if target_language
                     else speechsdk.ResultReason.RecognizedSpeech)
@@ -228,12 +232,16 @@ def _continuous_pcm(config, pcm, target_language=None):
         if result.reason != expected:
             raise SpeechServiceError("Azure kaydın tamamını işleyemedi.")
         if not isinstance(result.text, str) or not result.text.strip():
+            if on_no_match is not None:
+                on_no_match()
             return
         if target_language:
             translated = result.translations.get(target_language)
             if not isinstance(translated, str) or not translated.strip():
                 raise MissingTranslationError()
             translations.append(translated.strip())
+        if on_final is not None:
+            on_final(result)
         texts.append(result.text.strip())
 
     def canceled(event):
@@ -269,6 +277,8 @@ def _continuous_pcm(config, pcm, target_language=None):
                 translation_config=config, audio_config=audio_config)
         else:
             recognizer = speechsdk.SpeechRecognizer(speech_config=config, audio_config=audio_config)
+        if configure_recognizer is not None:
+            configure_recognizer(recognizer)
         # No recognizing or speech_end_detected handlers: neither is a final result/EOF.
         for signal, callback in [(recognizer.recognized, recognized),
                                  (recognizer.canceled, canceled),
@@ -361,3 +371,93 @@ def translate_pcm(pcm, source_language, target_language):
         raise
     except Exception:
         raise SpeechServiceError("Azure konuşma çevirisine erişilemedi. Ayarları ve bağlantıyı kontrol edip tekrar deneyin.") from None
+
+
+def _azure_score(data, key):
+    """Missing Azure scores stay null; never substitute SDK defaults or estimates."""
+    value = data.get(key)
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or not 0 <= value <= 100:
+        raise SpeechServiceError("Azure geçerli bir değerlendirme puanı döndürmedi.")
+    return value
+
+
+def _assessment_segment(result):
+    # The official Python sample reads this exact SDK property / NBest schema.
+    # Parse presence explicitly: missing scores must not turn into fabricated zeros.
+    raw = result.properties.get(speechsdk.PropertyId.SpeechServiceResponse_JsonResult)
+    if not isinstance(raw, str) or not raw:
+        raise SpeechServiceError("Azure telaffuz değerlendirmesi döndürmedi.")
+    data = json.loads(raw)
+    best = data["NBest"][0]
+    assessment = best.get("PronunciationAssessment")
+    if not isinstance(assessment, dict) or not assessment:
+        raise SpeechServiceError("Azure telaffuz değerlendirmesi eksik.")
+    scores = {name: _azure_score(assessment, key) for name, key in {
+        "accuracy": "AccuracyScore", "fluency": "FluencyScore",
+        "completeness": "CompletenessScore", "pronunciation": "PronScore",
+    }.items()}
+    if all(value is None for value in scores.values()):
+        raise SpeechServiceError("Azure kullanılabilir telaffuz puanı döndürmedi.")
+    words = []
+    for word in best.get("Words", []):
+        if not isinstance(word.get("Word"), str):
+            raise SpeechServiceError("Azure kelime değerlendirmesi geçersiz.")
+        detail = word.get("PronunciationAssessment", {})
+        error_type = detail.get("ErrorType")
+        words.append({
+            "word": word["Word"],
+            "accuracy": None if error_type == "Omission" else _azure_score(detail, "AccuracyScore"),
+            "error_type": error_type if isinstance(error_type, str) else None,
+        })
+    return {"text": result.text, "scores": scores, "words": words,
+            "assessment_complete": all(value is not None for value in scores.values())}
+
+
+@serialized_speech
+def assess_pronunciation(pcm, reference_text, language):
+    """Continuous scripted en-US assessment; keep segment scores, no invented total."""
+    if language != "en-US":
+        raise InvalidAudioError("Telaffuz değerlendirmesi yalnızca en-US destekler.")
+    if not isinstance(reference_text, str) or not reference_text.strip() or len(reference_text) > 500:
+        raise InvalidAudioError("Referans metin boş olmayan, en fazla 500 karakterlik bir string olmalıdır.")
+    settings = load_speech_settings()
+    try:
+        config = speechsdk.SpeechConfig(subscription=settings.key, region=settings.region)
+        config.speech_recognition_language = language
+        assessment = speechsdk.PronunciationAssessmentConfig(
+            reference_text=reference_text,
+            grading_system=speechsdk.PronunciationAssessmentGradingSystem.HundredMark,
+            granularity=speechsdk.PronunciationAssessmentGranularity.Word,
+            enable_miscue=False,
+        )
+        segments = []
+        unassessed_segments = 0
+
+        def collect(result):
+            segment = _assessment_segment(result)
+            segment["index"] = len(segments) + 1
+            segments.append(segment)
+
+        def unassessed():
+            nonlocal unassessed_segments
+            unassessed_segments += 1
+
+        text, _ = _continuous_pcm(config, pcm, configure_recognizer=assessment.apply_to,
+                                  on_final=collect, on_no_match=unassessed)
+        complete = not unassessed_segments and all(segment["assessment_complete"] for segment in segments)
+        warnings = ["Puanlar Azure'un kesinleşmiş segment sonuçlarıdır; tüm kayıt/referans için toplam puan hesaplanmaz."]
+        if not complete:
+            warnings.append("Bazı bölümler veya puanlar değerlendirilemedi; eksik puanlar null olarak gösterilir.")
+        return {
+            "language": language, "reference_text": reference_text, "recognized_text": text,
+            "score_scale": 100, "session_complete": True, "assessment_complete": complete,
+            "unassessed_segments": unassessed_segments,
+            "scope": "single_segment" if len(segments) == 1 else "segments_only",
+            "overall_scores": None, "segments": segments, "warnings": warnings,
+        }
+    except (NoSpeechError, SpeechServiceError):
+        raise
+    except Exception:
+        raise SpeechServiceError("Azure telaffuz değerlendirmesi tamamlanamadı. Ayarları ve bağlantıyı kontrol edin.") from None

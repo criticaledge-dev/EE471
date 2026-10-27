@@ -77,6 +77,9 @@ class CombinedTests(unittest.TestCase):
         self.assertIn("translation-form", parser.ids)
         self.assertIn("translation-original", parser.ids)
         self.assertIn("translation-text", parser.ids)
+        self.assertIn("pronunciation-form", parser.ids)
+        self.assertIn("pronunciation-reference", parser.ids)
+        self.assertIn("pronunciation-result", parser.ids)
         self.assertIn("30 saniye", html)
         self.dotenv.assert_not_called()
 
