@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Your library | EE471</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script type="module" src="{{ url_for('static', filename='script.js') }}"></script>
+</head>
+<body>
+    <main class="page">
+        <header class="page-header">
+            <div>
+                <h1>Your library, in one place.</h1>
+                <p>Manage books and DVDs. Keep track of what is on the shelf.</p>
+            </div>
+            <span class="course">EE471 / WEEK 04</span>
+        </header>
+        <noscript><p class="notice error">Enable JavaScript to manage your library.</p></noscript>
+        <div class="workspace">
+            <section class="collection" aria-labelledby="collection-heading">
+                <div class="toolbar">
+                    <h2 id="collection-heading">Collection</h2>
+                    <div class="filters">
+                        <div class="type-filters" role="group" aria-label="Filter by item type">
+                            <button type="button" data-filter="" aria-pressed="true">All</button>
+                            <button type="button" data-filter="book" aria-pressed="false">Book</button>
+                            <button type="button" data-filter="dvd" aria-pressed="false">DVD</button>
+                        </div>
+                        <label class="available-filter">
+                            <span>Status</span>
+                            <select id="available-filter" aria-label="Filter by availability">
+                                <option value="">All</option>
+                                <option value="true">Available</option>
+                                <option value="false">Checked out</option>
+                            </select>
+                        </label>
+                    </div>
+                </div>
+                <p id="loading" class="list-message" role="status" hidden>Loading your collection…</p>
+                <ul id="item-list" class="item-list" aria-label="Library items" aria-busy="false"></ul>
+                <p id="empty" class="list-message" hidden>No items to show. Add an item or change your filters.</p>
+                <p id="error" class="notice error" role="alert" hidden></p>
+                <p id="success" class="notice success" role="status" hidden></p>
+                <div class="collection-footer">
+                    <p id="item-count" aria-live="polite"></p>
+                    <button id="refresh" class="refresh" type="button">Refresh list</button>
+                </div>
+            </section>
+            <aside class="form-panel" aria-labelledby="form-heading">
+                <h2 id="form-heading">Add an item</h2>
+                <p id="form-description">Build your collection, one item at a time.</p>
+                <form id="item-form" novalidate>
+                    <div class="field">
+                        <label for="title">Title</label>
+                        <input id="title" name="title" type="text" placeholder="Enter title">
+                    </div>
+                    <div class="field">
+                        <label for="author">Author / Director</label>
+                        <input id="author" name="author" type="text" placeholder="Enter name">
+                    </div>
+                    <div class="field">
+                        <label for="type">Type</label>
+                        <select id="type" name="type">
+                            <option value="book">Book</option>
+                            <option value="dvd">DVD</option>
+                        </select>
+                    </div>
+                    <div class="field">
+                        <label id="detail-label" for="detail">Page count</label>
+                        <input id="detail" name="page_count" type="number" step="any" placeholder="e.g. 310">
+                    </div>
+                    <div class="form-actions">
+                        <button id="save" type="submit" class="primary">Add item</button>
+                        <button id="cancel" type="button">Cancel</button>
+                    </div>
+                </form>
+                <p class="form-hint">Edit opens this form with existing values.</p>
+            </aside>
+        </div>
+        <section class="command-panel" aria-labelledby="command-heading">
+            <h2 id="command-heading">Command</h2>
+            <section class="voice-panel" aria-labelledby="spoken-heading">
+                <h3 id="spoken-heading">Spoken responses · English</h3>
+                <label><input id="spoken-enabled" type="checkbox" data-speech-control="toggle"> Spoken responses</label>
+                <div class="voice-controls">
+                    <button id="spoken-play" type="button" data-speech-control="play" disabled>Play response</button>
+                    <button id="spoken-stop" type="button" data-speech-control="stop">Stop speech</button>
+                </div>
+                <p id="spoken-status" role="status" aria-live="polite">Spoken responses off.</p>
+                <p id="spoken-error" class="notice error" role="alert" hidden></p>
+                <p>Last response: <span id="spoken-text"></span></p>
+                <p>Play response retries speech only; it never repeats a Library command.</p>
+            </section>
+            <section class="voice-panel" aria-labelledby="voice-heading">
+                <h3 id="voice-heading">Microphone command · en-US</h3>
+                <p>Maximum 30 seconds. A completed recording is recognized before running one command.</p>
+                <div class="voice-controls">
+                    <button id="voice-start" type="button" data-voice-control="start">Start microphone</button>
+                    <button id="voice-stop" type="button" data-voice-control="stop" disabled>Stop and process</button>
+                    <button id="voice-cancel" type="button" data-voice-control="cancel" disabled>Cancel recording</button>
+                </div>
+                <p id="voice-status" role="status" aria-live="polite">Ready. No recording in progress.</p>
+                <p id="voice-error" class="notice error" role="alert" hidden></p>
+                <p>Recognized transcript: <span id="voice-transcript"></span></p>
+                <p>If parsing fails, correct the transcript in Command and use Run command. Manual correction is not a completed voice-only operation.</p>
+            </section>
+            <p>Type one English command. Example: List available books.</p>
+            <form id="command-form">
+                <label for="command-text">English command</label>
+                <textarea id="command-text" rows="3" maxlength="2000" placeholder="Check out item three" aria-describedby="command-help"></textarea>
+                <p id="command-help">Use explicit field labels. In comma-separated commands, labels are recognized only at section starts. Quote literal commas or ambiguous comma-free titles.</p>
+                <button id="command-run" class="primary" type="submit">Run command</button>
+            </form>
+            <p id="command-summary" role="status" aria-live="polite"></p>
+            <pre id="command-result" class="notice success" role="status" hidden></pre>
+            <p id="command-warning" class="notice warning" role="status" hidden></p>
+            <p id="command-error" class="notice error" role="alert" hidden></p>
+        </section>
+    </main>
+    <template id="item-template">
+        <li class="item-card">
+            <div class="item-info"><h3 class="item-title"></h3><p class="item-author"></p></div>
+            <div class="item-details"><span class="item-type"></span><p class="item-detail"></p></div>
+            <span class="badge"></span>
+            <div class="item-actions">
+                <button class="state-action" type="button"></button>
+                <button class="edit-action icon-button" type="button" aria-label="Edit item">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 4 5 5M4 20l5-1L20 8a3.5 3.5 0 0 0-5-5L4 14zM13 21h8"/></svg>
+                </button>
+                <button class="delete-action icon-button" type="button" aria-label="Delete item">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/></svg>
+                </button>
+            </div>
+        </li>
+    </template>
+</body>
+</html>
