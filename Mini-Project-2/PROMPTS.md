@@ -4,7 +4,7 @@ Bu belge Mini Project 2 için kronolojik olarak düzenlenmiş bir çalışma kay
 
 **Tam istem** başlıklarında mevcut tam metin korunur. Kısaltılarak aktarılmış kayıtlar **İstem özeti** olarak etiketlenir; eksik tam metinler tahminle tamamlanmaz. Test sayıları, hata nedenleri ve yeniden üretilemeyen bulguların belirsizliği ilgili aşamanın kaydı olarak korunur.
 
-Eski aşamalardaki “gerçek ses doğrulaması bekliyor” ve benzeri ifadeler **o aşamadaki durumu** anlatır; silinmemiştir. Sonradan gelen kullanıcı doğrulamaları bu tarihsel kayıtları tüm senaryolar için başarıya dönüştürmez. Otomatik/mock kontroller ile kullanıcının gerçek manuel kontrolleri ayrı kaydedilir; en son İngilizce TTS bildirimi belgenin sonundadır.
+Eski aşamalardaki “gerçek ses doğrulaması bekliyor” ve benzeri ifadeler **o aşamadaki durumu** anlatır; silinmemiştir. Sonradan gelen kullanıcı doğrulamaları bu tarihsel kayıtları tüm senaryolar için başarıya dönüştürmez. Otomatik/mock kontroller ile kullanıcının gerçek manuel kontrolleri ayrı kaydedilir; İngilizce TTS bildirimi kendisine ait ayrı bölümde korunur. Daha sonraki düzeltmeler bu kronolojinin devamına eklenir.
 
 ## Başlangıç kopyası ve sözleşme incelemesi
 
@@ -695,3 +695,60 @@ Yalnızca bu dosya düzenlendi. Mevcut bölümler kronolojik sıraya taşındı;
 Kullanıcı, İngilizce TTS yanıtlarının hoparlörden doğru şekilde duyulduğunu ayrıca bildirdi.
 
 Bu, kullanıcı tarafından yapılan gerçek manuel kontroldür; asistanın gerçekleştirdiği bir ses testi veya otomatik/mock test sonucu değildir. Bildirim tüm endpoint seslerinin, autoplay reddinin veya iptal senaryolarının ayrı ayrı doğrulandığı şeklinde genişletilmez. Önceki aşamalardaki bekleyen doğrulama ifadeleri kendi zamanlarının kaydı olarak korunur.
+
+## Karma alan ayırıcıları ve title/titled düzeltmesi — 2026-11-03
+
+### Tam istem
+
+```text
+Önceki voice-library branch koşulunu bu düzeltme için kaldırıyorum.
+Yetkili çalışma branch’i: fix-library-command-boundaries.
+
+Yalnızca Mini-Project-2 içinde doğruladığın karma ayırıcı hatasını düzelt.
+
+İki gerçek transkript:
+1. Create item type book titled Hobbit Author Tolkien, pages 500.
+2. Create Item Type Book Title Hobbit Author Tolkien, Pages 500.
+
+İkisi için beklenen fields:
+{"type":"book","title":"Hobbit","author":"Tolkien","page_count":500}
+
+Doğrulanan neden:
+Tek virgül global commaMode açıyor; diğer açık alan sınırları tanınmayınca type değeri sonraki alanları da içeriyor.
+
+- Global virgüllü/virgülsüz seçiminden kaynaklanan bu sorunu gider.
+- Aynı komutta karma ayırıcılar bulunan açık, tek anlamlı alanları destekle.
+- title/titled eş anlamlılarını destekle.
+- Virgülle veya tırnakla sınırlandırılmış başlık/yazar içindeki etiket kelimelerini yanlışlıkla bölme.
+- Gerçekten belirsiz girdilerde tahmin ederek mutasyon yapma.
+- Mevcut sayı, noktalama, alan sırası ve doğrulama davranışlarını koru.
+- Her iki tam transkripti parser ve ortak runner regresyonlarına ekle.
+- Doğru gövdeyle yalnızca bir POST gönderildiğini doğrula.
+- Mümkünse gerçek Flask/headless panelinde de iki örneği kontrol et.
+- Önceki ilgili testleri çalıştır; README/PROMPTS kayıtlarını güncelle.
+
+.env okuma. Commit/push/merge yapma.
+```
+
+### Yeniden üretim ve doğrulanmış neden
+
+- Önceki salt okunur incelemede branch main olduğu için dosya değiştirilmemişti. Kullanıcı bu görev için voice-library koşulunu kaldırdı; aktif branch **fix-library-command-boundaries** olarak doğrulandı. Branch değiştirilmedi/oluşturulmadı.
+- İki tam transkript bu turda değişiklik öncesi ayrı ayrı parser'a verildi. İkisi de `Create requires type book or DVD.` hatasını verdi.
+- `tokens.some(...comma...)` komutun tamamı için commaMode açıyordu. Type okunurken sonraki title/author etiketlerinde durulmadığından ilk örnekte `book titled hobbit author tolkien`, ikincide `book title hobbit author tolkien` type değerine giriyordu. Son şema kontrolü bunu geçersiz tür olarak bildiriyordu; gerçek sorun book türü değil, alan sınırıydı.
+- Titled ayrıca desteklenmeyen eş anlamlıydı. Ancak ikinci örnek doğrudan Title içerdiğinden sorun yalnızca titled eksikliğine bağlanamaz; yalnızca eş anlamlı eklemek karma ayırıcı hatasını çözmezdi.
+
+### Düzeltme ve gramer sınırları
+
+- `static/command-parser.mjs`: Global commaMode kaldırıldı. Type/sayısal alanlar ve açık etiket akışındaki metin alanları sonraki açık etikette durur; bir bölümdeki virgül diğer bölümlerin sınırlarını kapatmaz. Title/titled aynı title anahtarına bağlanır ve ikisinin birlikte tekrarı duplicate alan sayılır.
+- Metin etiketi ayırıcıyla sınırlandırılmış bir bölümün başındaysa bölümün tırnaksız değeri korunur. Örneğin `Create item type book, title The author of pages, author Test Author, pages 500` içindeki author/pages sözcükleri literal başlık/yazar verisidir. Tırnaklı title/author değeri tek atom olarak okunur; ardından farklı ayırıcı düzenindeki açık etiket gelebilir.
+- İki yeni gerçek örnekte bölüm type ile başladığından sonraki title/titled ve author alanları açık akış olarak ayrı okunur; pages bölümüne gelindiğinde type yalnızca book'tur. İkisi de beklenen dört alanı üretir.
+- Korunan bir author bölümünün içindeki `pages 500` gibi sözcükler, eksik zorunlu alanı tamamlamak için tahminle yeniden bölünmez. Örneğin `Create item type book title Hobbit, author Tolkien pages 500` eksik pages nedeniyle reddedilir; yalnızca belirsiz author değerini tırnaklayarak veya pages öncesine ayırıcı koyarak sınır açıklaştırılabilir. Tam komutun tek tarz ayırıcı kullanması gerekmez. Sınırlandırılmamış isteğe bağlı title/author PATCH belirsizlik kontrolü sürer.
+- Sayı/sayı kelimesi/binlik, duration in minutes, etiket sonu nokta, alan sırası, J.D. Salinger, literal tırnak/virgül ve eski validasyon regresyonları korunur. Negatif/kesir/eksik sayı, duplicate alias, bilinmeyen alan ve belirsizlikte ön GET veya mutasyon yapılmaz. Backend, STT/TTS ve Library model/API değiştirilmedi.
+
+### Testler ve gerçek sonuçlar
+
+- **87 Node.js testi geçti**: `node --test --test-reporter=dot test_commands.mjs test_script.js test_voice_input.mjs test_spoken_responses.mjs`. Önceki 81 test korunup dört parser ve iki gerçek UI kaynağı/ortak runner regresyonu eklendi. Her tam transkript gerçek Command form olayıyla doğru gövdeli **bir POST /api/items** gönderir; geçersiz/belirsiz varyantlarda sıfır API isteği kontrol edildi.
+- **51 Python unittest testi geçti**; API/STT/TTS regresyonları mock SDK/dotenv ile çalışır. Gerçek Azure/.env kullanılmadı.
+- Gerçek yerel Flask/Chrome headless Command panelinde **29 kontrol geçti**, JavaScript hatası görülmedi. Beş tam CREATE regresyonu (önceki üç ve yeni iki) için doğru gövdeli beş POST ve gerçek GET doğrulaması görüldü; yeni örneklerin her biri tek POST gönderdi. İzole süreç koleksiyonu/geçici port kullanıldı; uygulama portu 5002 korunur. Mikrofon/TTS istekleri testte engellenir ve Chrome mute çalışır.
+- `test_commands.mjs`, `test_script.js`, `check_commands_browser.py`, README ve bu kayıt güncellendi. Yalnızca Mini-Project-2 içinde çalışıldı. Gerçek .env okunmadı. Commit/push/merge yapılmadı.
+- Gerçek kullanıcı mikrofonuyla **bu karma ayırıcı düzeltmesinin yeniden doğrulaması yapılmadı**. Önceki DVD ve İngilizce TTS manuel bildirimleri bu yeni düzeltmenin veya tüm ses senaryolarının doğrulaması sayılmaz. Önceki yeniden üretilemeyen iki ayrı CREATE vakasının belirsizliği değiştirilmedi.

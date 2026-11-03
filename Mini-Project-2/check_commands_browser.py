@@ -73,6 +73,10 @@ try {
       id: 8, fields: {type: 'dvd', title: 'Inception', author: 'Christopher Nolan', duration: 148}, detail: 'Duration: 148'},
     {text: 'Create item type DVD title Inception author Christopher Nolan Duration. 148 minutes.',
       id: 9, fields: {type: 'dvd', title: 'Inception', author: 'Christopher Nolan', duration: 148}, detail: 'Duration: 148'},
+    {text: 'Create item type book titled Hobbit Author Tolkien, pages 500.',
+      id: 10, fields: {type: 'book', title: 'Hobbit', author: 'Tolkien', page_count: 500}, detail: 'Pages: 500'},
+    {text: 'Create Item Type Book Title Hobbit Author Tolkien, Pages 500.',
+      id: 11, fields: {type: 'book', title: 'Hobbit', author: 'Tolkien', page_count: 500}, detail: 'Pages: 500'},
   ]) {
     const before = posts.length;
     await command(example.text, 'ID ' + example.id);
@@ -90,7 +94,7 @@ try {
   check(posts.length === beforeInvalid, 'invalid-command-posted');
   check(errors.length === 0, 'javascript-errors');
   const result = document.createElement('pre'); result.id = 'browser-check-result';
-  result.textContent = JSON.stringify({ok: true, steps, errors, exactCreateCases: 3, exactCreatePosts: 3}); document.body.append(result);
+  result.textContent = JSON.stringify({ok: true, steps, errors, exactCreateCases: 5, exactCreatePosts: 5}); document.body.append(result);
 } catch (error) {
   const result = document.createElement('pre'); result.id = 'browser-check-result';
   result.textContent = JSON.stringify({ok: false, steps, errors, failure: error.message}); document.body.append(result);

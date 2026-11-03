@@ -688,6 +688,36 @@ test('real Duration-dot transcript sends exactly one correct POST via Command; i
     }
 });
 
+test('both real mixed-separator transcripts reach the shared runner with one exact POST each', async () => {
+    const fields = {type: 'book', title: 'Hobbit', author: 'Tolkien', page_count: 500};
+    for (const text of ['Create item type book titled Hobbit Author Tolkien, pages 500.',
+        'Create Item Type Book Title Hobbit Author Tolkien, Pages 500.']) {
+        const h = await setup();
+        h.replies.push({status: 201, body: {...fields, id: 4, is_available: true}}, {status: 200, body: []});
+        h.ui['command-text'].value = text;
+        const result = await h.ui['command-form'].trigger('submit');
+        assert.equal(result.ok, true, text);
+        const mutations = h.requests.filter(r => ['POST', 'PUT', 'PATCH', 'DELETE'].includes(r.method));
+        assert.equal(mutations.length, 1); assert.equal(mutations[0].method, 'POST');
+        assert.equal(mutations[0].url, '/api/items');
+        assert.deepEqual(JSON.parse(mutations[0].body), fields);
+        assert.equal(h.ui['command-error'].hidden, true);
+    }
+});
+
+test('mixed invalid or ambiguous fields never reach an API preflight or mutation', async () => {
+    const h = await setup();
+    for (const text of ['Create item type book titled Hobbit Author Tolkien, pages -500',
+        'Create item type book titled Hobbit title Other author Tolkien, pages 500',
+        'Create item type book title Hobbit, author Tolkien pages 500',
+        'Update item 3 pages 500 title The author of books',
+        'Create item type book titled Hobbit author Tolkien, unknown 500']) {
+        const before = h.requests.length; h.ui['command-text'].value = text;
+        const result = await h.ui['command-form'].trigger('submit');
+        assert.equal(result.ok, false, text); assert.equal(h.requests.length, before);
+    }
+});
+
 test('all command results and parser/HTTP errors reach speech once via the shared entry', async () => {
     const {mockSpeech} = await import('./speech-test-helpers.mjs');
     const {settle} = await import('./voice-test-helpers.mjs');

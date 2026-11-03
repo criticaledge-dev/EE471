@@ -22,6 +22,60 @@ test("all nine list commands and availability false", () => {
     }
 });
 
+test('both real mixed-separator transcripts normalize to the same book fields', () => {
+    const expected = {type: 'book', title: 'Hobbit', author: 'Tolkien', page_count: 500};
+    for (const text of ['Create item type book titled Hobbit Author Tolkien, pages 500.',
+        'Create Item Type Book Title Hobbit Author Tolkien, Pages 500.']) {
+        assert.deepEqual(parse(text).fields, expected, text);
+    }
+});
+
+test('local field boundaries support mixed sections, field order, punctuation and number words', () => {
+    const expected = {type: 'book', title: 'Hobbit', author: 'Tolkien', page_count: 500};
+    for (const text of ['Create item, type book title Hobbit author Tolkien pages 500',
+        'Create item type book title Hobbit, author Tolkien, pages 500',
+        'Create item type book, title Hobbit, author Tolkien, pages 500',
+        'Create item type book titled Hobbit author Tolkien; pages five hundred',
+        'Create item; type: book title: Hobbit author: Tolkien; page count. 500',
+        'Create item type book title "Hobbit" author "Tolkien", pages 500',
+        'Create item pages five hundred, type book titled Hobbit author Tolkien']) {
+        assert.deepEqual(parse(text).fields, expected, text);
+    }
+    assert.deepEqual(parse('Replace item three, page count five hundred titled Hobbit author Tolkien').fields,
+        {page_count: 500, title: 'Hobbit', author: 'Tolkien'});
+    assert.deepEqual(parse('Replace item three titled "Hobbit" author Tolkien, page count five hundred').fields,
+        {title: 'Hobbit', author: 'Tolkien', page_count: 500});
+    assert.deepEqual(parse('Update item 3 pages 500, titled Hobbit').fields, {page_count: 500, title: 'Hobbit'});
+    assert.deepEqual(parse('Create item type DVD title Inception author Nolan, duration in minutes. 148 minutes').fields,
+        {type: 'dvd', title: 'Inception', author: 'Nolan', duration: 148});
+});
+
+test('delimiter-start text sections and quoted atoms preserve literal labels and dotted names in mixed commands', () => {
+    assert.deepEqual(parse('Create item type book, titled The author of title pages titled, author Title Author Pages, pages 500').fields,
+        {type: 'book', title: 'The author of title pages titled', author: 'Title Author Pages', page_count: 500});
+    assert.deepEqual(parse('Create item type book title "The author of pages" author "Title Author", pages 500').fields,
+        {type: 'book', title: 'The author of pages', author: 'Title Author', page_count: 500});
+    assert.deepEqual(parse('Create item title "A, B" type book author J.D. Salinger, pages 500').fields,
+        {title: 'A, B', type: 'book', author: 'J.D. Salinger', page_count: 500});
+    assert.equal(parse('Update item 3, titled The author of books').fields.title, 'The author of books');
+    assert.deepEqual(parse('Update item 3, title X author Y').fields, {title: 'X author Y'});
+});
+
+test('mixed separators never repair invalid numbers, duplicate aliases or ambiguous unbounded text', () => {
+    for (const text of ['Create item type book titled Hobbit title Other author Tolkien, pages 500',
+        'Create item type book, title Hobbit, titled Other, author Tolkien, pages 500',
+        'Create item type book titled Hobbit author Tolkien, pages -500',
+        'Create item type book titled Hobbit author Tolkien, pages 5.5',
+        'Create item type book titled Hobbit author Tolkien, pages 5,00',
+        'Create item type book titled Hobbit author Tolkien, pages',
+        'Create item type book titled Hobbit author Tolkien, unknown 500',
+        'Update item 3 pages 500 title The author of books',
+        'Update item 3 pages 500 title X author Y',
+        'Create item type book title Hobbit, author Tolkien pages 500']) {
+        assert.throws(() => parse(text), undefined, text);
+    }
+});
+
 test("field ordering, comma-separated or comma-free input, numbers and exact text", () => {
     assert.deepEqual(parse("CREATE ITEM author J.D. Salinger pages three hundred ten type BOOK title 1984").fields,
         { author: "J.D. Salinger", page_count: 310, type: "book", title: "1984" });

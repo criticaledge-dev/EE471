@@ -2,7 +2,7 @@
 const units = "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen".split(" ");
 const tens = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
 const scales = { thousand: 1000n, million: 1000000n, billion: 1000000000n, trillion: 1000000000000n, quadrillion: 1000000000000000n };
-const labels = new Set(["type", "title", "author", "page", "pages", "duration"]);
+const labels = new Set(["type", "title", "titled", "author", "page", "pages", "duration"]);
 const forbidden = new Set(["id", "is_available", "page_count", "director", "publisher", "isbn", "year", "available", "status"]);
 const extraCommand = /\b(?:create\s+item|list\s+(?:items|books|dvds|available|checked)|get\s+item|replace\s+item|update\s+item|delete\s+item|check\s*out\s+item|return\s+item)\b/i;
 const fail = message => { throw new Error(message); };
@@ -24,7 +24,7 @@ function fieldAt(tokens, index) {
     }
     const name = token.value.toLowerCase();
     if (!labels.has(name)) return null;
-    return { name, width: 1 };
+    return { name: name === "titled" ? "title" : name, width: 1 };
 }
 
 // Only a terminal sentence dot at a known field boundary is removable.
@@ -145,10 +145,10 @@ export function parseLibraryCommand(input) {
         if (label && tokens[i + label.width]?.kind === "colon") labelColons.add(i + label.width);
     }
     tokens.forEach((token, i) => { if (token.kind === "colon" && !labelColons.has(i)) token.kind = "comma"; });
-    const commaMode = tokens.some(token => token.kind === "comma");
     const source = text.slice(head[0].length);
     const quotedFields = new Set();
     const sentenceBoundedFields = new Set();
+    const delimitedFields = new Set();
     let pos = 0;
     const dotBeforeField = index => tokens[index]?.kind === "word" && tokens[index].value === "."
         && (fieldAt(tokens, index + 1) || tokens[index + 1]?.kind === "comma" && fieldAt(tokens, index + 2));
@@ -167,9 +167,12 @@ export function parseLibraryCommand(input) {
     }
     if (dotBeforeField(pos)) pos++;
     if (tokens[pos]?.kind === "comma") pos++;
+    let sectionStart = pos;
+    let leftDelimited = tokens[pos - 1]?.kind === "comma";
     while (pos < tokens.length) {
+        const labelStart = pos;
         const label = fieldAt(tokens, pos);
-        if (!label) return fail("Unknown or non-editable field. Use type, title, author, page/pages/page count or duration as appropriate.");
+        if (!label) return fail("Unknown or non-editable field. Use type, title/titled, author, page/pages/page count or duration as appropriate.");
         const name = label.name;
         pos += label.width;
         if (!label.dotted && (tokens[pos]?.kind === "colon"
@@ -178,28 +181,37 @@ export function parseLibraryCommand(input) {
         const key = name === "pages" ? "page_count" : name;
         if (Object.hasOwn(command.fields, key)) return fail("Duplicate field: " + name + ". Quote literal field words inside a title or author.");
         const start = pos;
-        while (pos < tokens.length) {
-            const token = tokens[pos];
-            if (dotBeforeField(pos) && (!commaMode || tokens[pos + 1]?.kind === "comma")) break;
-            if (token.kind === "comma" || !commaMode && (fieldAt(tokens, pos)
-                || token.kind === "word" && forbidden.has(token.value.toLowerCase()))) break;
-            pos++;
+        let sectionEnd = pos;
+        while (sectionEnd < tokens.length && tokens[sectionEnd].kind !== "comma") sectionEnd++;
+        // A text field at an explicitly delimited section start owns that section.
+        // A comma elsewhere never changes how earlier/later open fields are read.
+        const protectedText = ["title", "author"].includes(name) && labelStart === sectionStart
+            && (leftDelimited || sectionEnd < tokens.length);
+        if (["title", "author"].includes(name) && tokens[pos]?.kind === "quoted") pos++;
+        else {
+            while (pos < tokens.length) {
+                const token = tokens[pos];
+                if (dotBeforeField(pos) && (!protectedText || tokens[pos + 1]?.kind === "comma")) break;
+                if (token.kind === "comma" || !protectedText && (fieldAt(tokens, pos)
+                    || token.kind === "word" && forbidden.has(token.value.toLowerCase()))) break;
+                pos++;
+            }
         }
         const valueTokens = tokens.slice(start, pos);
         if (!valueTokens.length) return fail("Missing value for " + name + ".");
         const quoted = valueTokens.some(token => token.kind === "quoted");
         if (quoted && (valueTokens.length !== 1 || !["title", "author"].includes(name))) return fail("Use a single quoted string only for title or author.");
         let value = quoted ? valueTokens[0].value : source.slice(valueTokens[0].start, valueTokens.at(-1).end).trim();
-        if (!commaMode && dotBeforeField(pos)) sentenceBoundedFields.add(key);
+        if (!protectedText && dotBeforeField(pos)) sentenceBoundedFields.add(key);
         if (!quoted && nextField(pos)) {
             const clean = withoutBoundaryDot(value);
-            if (!commaMode && clean !== value) sentenceBoundedFields.add(key);
+            if (!protectedText && clean !== value) sentenceBoundedFields.add(key);
             value = clean;
         }
         if (!value.trim()) return fail("Title and author must not be empty.");
-        // In comma mode the section boundary is explicit. Words such as "Author"
-        // inside a title/name are data, never another label or an ambiguity.
+        // Explicit text sections and quoted values keep literal label words intact.
         if (quoted) quotedFields.add(key);
+        if (protectedText || tokens[pos]?.kind === "comma") delimitedFields.add(key);
         if (!quoted && (extraCommand.test(value) || /\b\w+:/.test(value))) return fail("Ambiguous value or multiple commands. Use one command; quote literal title/author text.");
         const numericValue = name === "duration" ? value.replace(/\s+minutes?$/i, "").trim() : value;
         command.fields[key] = name === "pages" || name === "duration" ? positiveInteger(numericValue)
@@ -208,12 +220,15 @@ export function parseLibraryCommand(input) {
         if (tokens[pos]?.kind === "comma") {
             pos++;
             if (pos === tokens.length) return fail("Missing field after comma.");
+            sectionStart = pos;
+            leftDelimited = true;
         }
     }
     const fields = command.fields;
-    if (!commaMode && command.action === "update" && fields.title !== undefined && fields.author !== undefined
+    const firstTextField = Object.keys(fields).find(key => ["title", "author"].includes(key));
+    if (command.action === "update" && fields.title !== undefined && fields.author !== undefined
         && !quotedFields.has("title") && !quotedFields.has("author")
-        && !sentenceBoundedFields.has(Object.keys(fields).find(key => ["title", "author"].includes(key)))) {
+        && !delimitedFields.has(firstTextField) && !sentenceBoundedFields.has(firstTextField)) {
         return fail("Ambiguous comma-free title/author boundary. Separate the fields with commas or quote the title/author value.");
     }
     if (fields.page_count !== undefined && fields.duration !== undefined) return fail("Use pages for a book or duration for a DVD, not both.");
