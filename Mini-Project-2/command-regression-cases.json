@@ -1,0 +1,44 @@
+[
+  {
+    "case": "PUT A", "origin": "reported_transcript",
+    "text": "Replace item six. Title revised Hobbit. Author Tolkien, pages 200.",
+    "action": "replace", "method": "PUT", "item_id": 6,
+    "fields": {"title": "revised Hobbit", "author": "Tolkien", "page_count": 200}
+  },
+  {
+    "case": "PUT B", "origin": "reported_transcript",
+    "text": "Replace item six. Title revised Hobbit author. Tolkien, pages 200.",
+    "action": "replace", "method": "PUT", "item_id": 6,
+    "fields": {"title": "revised Hobbit", "author": "Tolkien", "page_count": 200}
+  },
+  {
+    "case": "PUT C", "origin": "reported_transcript",
+    "text": "Replace item 3 titled Revised Hobbit author Tolkien, pages 200.",
+    "action": "replace", "method": "PUT", "item_id": 3,
+    "fields": {"title": "Revised Hobbit", "author": "Tolkien", "page_count": 200}
+  },
+  {
+    "case": "PUT D", "origin": "reported_transcript",
+    "text": "Replace item 3 title Revised Hobbit author Tolkien, pages 200.",
+    "action": "replace", "method": "PUT", "item_id": 3,
+    "fields": {"title": "Revised Hobbit", "author": "Tolkien", "page_count": 200}
+  },
+  {
+    "case": "PATCH words", "origin": "user_report_exact_azure_transcript_unconfirmed",
+    "text": "Update item three pages three hundred thirty.",
+    "action": "update", "method": "PATCH", "item_id": 3,
+    "fields": {"page_count": 330}
+  },
+  {
+    "case": "PATCH digits", "origin": "diagnostic_equivalent",
+    "text": "Update item 3 pages 330.",
+    "action": "update", "method": "PATCH", "item_id": 3,
+    "fields": {"page_count": 330}
+  },
+  {
+    "case": "PATCH outer quotes", "origin": "diagnostic_only_not_reported_as_literal_azure_transcript",
+    "text": "“Update item three pages three hundred thirty.”",
+    "action": "update", "method": "PATCH", "item_id": 3,
+    "fields": {"page_count": 330}
+  }
+]

@@ -1,7 +1,62 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import {readFileSync} from 'node:fs';
 import { parseLibraryCommand as parse, positiveInteger } from "./static/command-parser.mjs";
 import { executeLibraryCommand as execute, summarizeItems } from "./static/command-runner.mjs";
+const commandCases = JSON.parse(readFileSync(new URL('./command-regression-cases.json', import.meta.url), 'utf8'));
+
+test('table-driven reported PUT A/B/C/D and separately identified PATCH diagnostics', () => {
+    for (const example of commandCases) {
+        const command = parse(example.text);
+        assert.equal(command.action, example.action, example.case);
+        assert.equal(command.id, example.item_id, example.case);
+        assert.deepEqual(command.fields, example.fields, example.case);
+    }
+});
+
+test('CREATE/PUT/PATCH share text/numeric label punctuation, aliases and spacing rules', () => {
+    for (const action of ['Create item type book', 'Replace item three', 'Update item three']) {
+        for (const title of ['title', 'titled']) for (const separator of [' ', '. ', ': ', ' . ']) {
+            const between = action.startsWith('Update') && separator === ' ' ? ', ' : ' ';
+            const text = `${action} ${title}${separator}Revised Hobbit${between}author${separator}Tolkien, pages${separator}two hundred.`;
+            const expected = {title: 'Revised Hobbit', author: 'Tolkien', page_count: 200};
+            if (action.startsWith('Create')) expected.type = 'book';
+            assert.deepEqual(parse(text).fields, expected, text);
+        }
+    }
+    assert.deepEqual(parse('Create item type. DVD titled. Inception author. Nolan, duration. 148 minutes').fields,
+        {type: 'dvd', title: 'Inception', author: 'Nolan', duration: 148});
+    assert.deepEqual(parse('Replace item three, title. Revised Hobbit author. Tolkien, pages. 200').fields,
+        {title: 'Revised Hobbit', author: 'Tolkien', page_count: 200});
+    assert.deepEqual(parse('Replace\n item\t three. TITLE. Revised   Hobbit\n AUTHOR: Tolkien, page count. two hundred').fields,
+        {title: 'Revised   Hobbit', author: 'Tolkien', page_count: 200});
+});
+
+test('only matched external typographic command quotes are unwrapped; inner text stays intact', () => {
+    for (const [open, close] of [['\u201c','\u201d'], ['\u2018','\u2019']]) {
+        assert.equal(parse(open + 'Update item three pages three hundred thirty.' + close).fields.page_count, 330);
+        assert.deepEqual(parse(open + 'Replace item 3 title "Notes. Author biography" author "J.D. Salinger.", pages 200.' + close).fields,
+            {title: 'Notes. Author biography', author: 'J.D. Salinger.', page_count: 200});
+    }
+    assert.equal(parse('Update item 3, title \u201cMy Author\u201d').fields.title, '\u201cMy Author\u201d');
+    for (const text of ['\u201cUpdate item 3 pages 330.', 'Update item 3 pages 330.\u201d',
+        '\u201cUpdate item 3 pages 330.\u2019', '\u201c\u201cUpdate item 3 pages 330.\u201d\u201d',
+        '\u201cNot a command\u201d', '\u201cUpdate item 3 pages 330.\u201d trailing']) assert.throws(() => parse(text), undefined, text);
+});
+
+test('Arthur is literal data, and punctuation cannot repair ambiguity or invalid fields', () => {
+    assert.equal(parse('Replace item 3 title Hobbit author Arthur Tolkien, pages 200').fields.author, 'Arthur Tolkien');
+    assert.deepEqual(parse('Replace item 3, title The author of pages, author J.D. Salinger, pages 200').fields,
+        {title: 'The author of pages', author: 'J.D. Salinger', page_count: 200});
+    for (const text of ['Replace item 3 titled Hobbit Arthur Tolkien, pages 200',
+        'Replace item 3 title. Hobbit titled. Other author. Tolkien, pages 200',
+        'Replace item 3 title. Hobbit author. Tolkien, pages -200',
+        'Replace item 3 title. Hobbit author. Tolkien, pages 2,00',
+        'Replace item 3 title. Hobbit author. Tolkien, pages 2.5',
+        'Replace item 3 title. Hobbit author. Tolkien, publisher X',
+        'Replace item 3 title. Hobbit author. Tolkien',
+        'Update item 3 pages 200 title The author of books']) assert.throws(() => parse(text), undefined, text);
+});
 
 test("all command families and case-insensitive DVD spelling", () => {
     for (const [text, action, id] of [["Get item 3", "get", 3], ["Delete item three.", "delete", 3],
@@ -27,6 +82,51 @@ test('both real mixed-separator transcripts normalize to the same book fields', 
     for (const text of ['Create item type book titled Hobbit Author Tolkien, pages 500.',
         'Create Item Type Book Title Hobbit Author Tolkien, Pages 500.']) {
         assert.deepEqual(parse(text).fields, expected, text);
+    }
+});
+
+test('real dotted PUT transcript, numeric ID and equivalent delimiter variants agree', () => {
+    const fields = {title: 'revised Hobbit', author: 'Tolkien', page_count: 200};
+    for (const text of ['Replace item six. Title revised Hobbit. Author Tolkien, pages 200.',
+        'Replace item 6. Title revised Hobbit. Author Tolkien, pages 200.',
+        'Replace item six Title revised Hobbit. Author Tolkien, pages 200.',
+        'Replace item six. Title revised Hobbit . Author Tolkien, pages 200.',
+        'Replace item 6, title revised Hobbit, author Tolkien, pages 200',
+        'Replace item 6 title revised Hobbit author Tolkien pages 200']) {
+        const command = parse(text);
+        assert.equal(command.action, 'replace'); assert.equal(command.id, 6);
+        assert.deepEqual(command.fields, fields, text);
+    }
+});
+
+test('sentence boundaries split dotted PATCH fields instead of silently extending the title', () => {
+    for (const text of ['Update item six. Title revised Hobbit. Author Tolkien, pages 200.',
+        'Update item 6. Title revised Hobbit . Author Tolkien, pages 200.',
+        'Update item 6, Title revised Hobbit. Author Tolkien, pages 200.']) {
+        assert.deepEqual(parse(text).fields, {title: 'revised Hobbit', author: 'Tolkien', page_count: 200}, text);
+    }
+});
+
+test('PUT text retains initials, internal dots and quoted literal sentence/label words', () => {
+    assert.deepEqual(parse('Replace item six. Title Notes on J.D. Salinger. Author Tolkien, pages 200.').fields,
+        {title: 'Notes on J.D. Salinger', author: 'Tolkien', page_count: 200});
+    assert.deepEqual(parse('Replace item six. Title "revised Hobbit. Author notes". Author "J.D. Salinger.", pages 200.').fields,
+        {title: 'revised Hobbit. Author notes', author: 'J.D. Salinger.', page_count: 200});
+    assert.deepEqual(parse('Replace item 6, title Notes. A biography, author J.D. Salinger, pages 200').fields,
+        {title: 'Notes. A biography', author: 'J.D. Salinger', page_count: 200});
+    assert.equal(parse('Update item 6, title J.D. author notes').fields.title, 'J.D. author notes');
+    assert.equal(parse('Update item 6, title The author of books').fields.title, 'The author of books');
+});
+
+test('dotted PUT/PATCH still reject missing or invalid fields and unmarked ambiguity', () => {
+    for (const text of ['Replace item six. Title revised Hobbit. Author Tolkien',
+        'Replace item six. Title revised Hobbit, pages 200',
+        'Replace item six. Title revised Hobbit. Author Tolkien, pages -200',
+        'Replace item six. Title revised Hobbit. Author Tolkien, pages 2.5',
+        'Replace item six. Title revised Hobbit. Author Tolkien, pages 200, pages 201',
+        'Replace item six. Title revised Hobbit. Author Tolkien, pages 200, type book',
+        'Update item six pages 200 title The author of books']) {
+        assert.throws(() => parse(text), undefined, text);
     }
 });
 
@@ -328,6 +428,17 @@ function adapter(replies) {
         assert.notEqual(result, undefined, "Unexpected request"); if (result instanceof Error) throw result; return result;
     }, refreshItems: async () => [], setFilters() {} };
 }
+
+test('real dotted PUT performs fresh type GET then exactly one complete PUT', async () => {
+    const current = {...book, id: 6};
+    const fields = {title: 'revised Hobbit', author: 'Tolkien', page_count: 200};
+    const a = adapter([current, {...current, ...fields}]);
+    const result = await execute(parse('Replace item six. Title revised Hobbit. Author Tolkien, pages 200.'), a);
+    assert.equal(result.ok, true); assert.equal(a.requests.length, 2);
+    assert.equal(a.requests[0].path, '/api/items/6'); assert.equal(a.requests[0].method || 'GET', 'GET');
+    assert.equal(a.requests[1].path, '/api/items/6'); assert.equal(a.requests[1].method, 'PUT');
+    assert.deepEqual(JSON.parse(a.requests[1].body), fields);
+});
 
 test("PUT/PATCH preflight uses fresh item type and forbids a mismatched write", async () => {
     let a = adapter([book, { ...book, title: "Revised", page_count: 320 }]);

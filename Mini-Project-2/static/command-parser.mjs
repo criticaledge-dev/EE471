@@ -2,7 +2,12 @@
 const units = "zero one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen seventeen eighteen nineteen".split(" ");
 const tens = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
 const scales = { thousand: 1000n, million: 1000000n, billion: 1000000000n, trillion: 1000000000000n, quadrillion: 1000000000000000n };
-const labels = new Set(["type", "title", "titled", "author", "page", "pages", "duration"]);
+// Long labels precede short aliases; every field uses the same punctuation rule.
+const fieldLabels = [
+    ["duration in minutes", "duration", true], ["page count", "pages", true],
+    ["duration", "duration", true], ["pages", "pages", true], ["page", "pages", true],
+    ["type", "type", false], ["title", "title", false], ["titled", "title", false], ["author", "author", false],
+];
 const forbidden = new Set(["id", "is_available", "page_count", "director", "publisher", "isbn", "year", "available", "status"]);
 const extraCommand = /\b(?:create\s+item|list\s+(?:items|books|dvds|available|checked)|get\s+item|replace\s+item|update\s+item|delete\s+item|check\s*out\s+item|return\s+item)\b/i;
 const fail = message => { throw new Error(message); };
@@ -10,21 +15,17 @@ const fail = message => { throw new Error(message); };
 function fieldAt(tokens, index) {
     const token = tokens[index];
     if (token?.kind !== "word") return null;
-    // Only the final word of a known numeric label may carry a structural dot.
+    // Only the final word of a known label may carry a structural dot.
     // Never rewrite source/value tokens (e.g. J.D., decimal numbers, quoted text).
-    for (const [words, name] of [
-        [["duration", "in", "minutes"], "duration"], [["page", "count"], "pages"],
-        [["duration"], "duration"], [["pages"], "pages"], [["page"], "pages"],
-    ]) {
+    for (const [label, name, numeric] of fieldLabels) {
+        const words = label.split(" ");
         const matches = words.every((word, offset) => tokens[index + offset]?.kind === "word"
             && (tokens[index + offset].value.toLowerCase() === word
                 || offset === words.length - 1 && tokens[index + offset].value.toLowerCase() === word + "."));
-        if (matches) return {name, width: words.length, numeric: true,
+        if (matches) return {name, width: words.length, numeric,
             dotted: tokens[index + words.length - 1].value.endsWith(".")};
     }
-    const name = token.value.toLowerCase();
-    if (!labels.has(name)) return null;
-    return { name: name === "titled" ? "title" : name, width: 1 };
+    return null;
 }
 
 // Only a terminal sentence dot at a known field boundary is removable.
@@ -118,7 +119,15 @@ function tokenize(text) {
 
 export function parseLibraryCommand(input) {
     if (typeof input !== "string" || !input.trim() || input.length > 2000) return fail("Enter one English command (at most 2000 characters).");
-    const text = input.trim().replace(/[.!?;:]+$/, "").trim();
+    let text = input.trim();
+    // Only a matched outer typographic pair around a recognizable command is syntax.
+    // Inner quotes and literal text values are never rewritten.
+    const outerQuotes = {"\u201c": "\u201d", "\u2018": "\u2019"};
+    if (outerQuotes[text[0]] === text.at(-1)) {
+        const inner = text.slice(1, -1).trim();
+        if (/^(?:create|list|get|replace|update|delete|checkout|check\s+out|return)\s+/i.test(inner)) text = inner;
+    }
+    text = text.replace(/[.!?;:]+$/, "").trim();
     const command = { action: "", id: null, fields: {}, filters: { type: null, available: null } };
     const list = /^list\s+(?:(available|checked\s+out)\s+)?(items|books|dvds)$/i.exec(text);
     if (list) {
@@ -154,6 +163,19 @@ export function parseLibraryCommand(input) {
         && (fieldAt(tokens, index + 1) || tokens[index + 1]?.kind === "comma" && fieldAt(tokens, index + 2));
     const nextField = index => fieldAt(tokens, index) || tokens[index]?.kind === "comma" && fieldAt(tokens, index + 1)
         || dotBeforeField(index);
+    // A complete word + sentence dot before a known label is an explicit boundary,
+    // even inside a section that also ends with a comma. Initials are not dots to strip.
+    const sentenceFieldAt = index => {
+        const previous = tokens[index - 1];
+        return fieldAt(tokens, index) && previous?.kind === "word"
+            && (previous.value === "." || withoutBoundaryDot(previous.value) !== previous.value);
+    };
+    const explicitFieldAt = index => {
+        const label = fieldAt(tokens, index);
+        const separator = label && tokens[index + label.width];
+        return label && (sentenceFieldAt(index) || label.dotted || separator?.kind === "colon"
+            || separator?.kind === "word" && separator.value === ".");
+    };
     if (command.action !== "create") {
         const firstField = tokens.findIndex((token, index) => token.kind === "comma" || fieldAt(tokens, index)
             || token.kind === "word" && forbidden.has(token.value.toLowerCase()));
@@ -176,22 +198,21 @@ export function parseLibraryCommand(input) {
         const name = label.name;
         pos += label.width;
         if (!label.dotted && (tokens[pos]?.kind === "colon"
-            || label.numeric && tokens[pos]?.kind === "word" && tokens[pos].value === ".")) pos++;
+            || tokens[pos]?.kind === "word" && tokens[pos].value === ".")) pos++;
         if (name === "type" && command.action !== "create") return fail("Replace/Update cannot change type.");
         const key = name === "pages" ? "page_count" : name;
         if (Object.hasOwn(command.fields, key)) return fail("Duplicate field: " + name + ". Quote literal field words inside a title or author.");
         const start = pos;
-        let sectionEnd = pos;
-        while (sectionEnd < tokens.length && tokens[sectionEnd].kind !== "comma") sectionEnd++;
-        // A text field at an explicitly delimited section start owns that section.
-        // A comma elsewhere never changes how earlier/later open fields are read.
+        // Only an explicit LEFT section delimiter protects unquoted text.
+        // A future comma cannot retroactively swallow labels in an open field run.
         const protectedText = ["title", "author"].includes(name) && labelStart === sectionStart
-            && (leftDelimited || sectionEnd < tokens.length);
+            && leftDelimited;
         if (["title", "author"].includes(name) && tokens[pos]?.kind === "quoted") pos++;
         else {
             while (pos < tokens.length) {
                 const token = tokens[pos];
-                if (dotBeforeField(pos) && (!protectedText || tokens[pos + 1]?.kind === "comma")) break;
+                if (dotBeforeField(pos)) break;
+                if (protectedText && pos > start && explicitFieldAt(pos)) break;
                 if (token.kind === "comma" || !protectedText && (fieldAt(tokens, pos)
                     || token.kind === "word" && forbidden.has(token.value.toLowerCase()))) break;
                 pos++;
@@ -202,7 +223,7 @@ export function parseLibraryCommand(input) {
         const quoted = valueTokens.some(token => token.kind === "quoted");
         if (quoted && (valueTokens.length !== 1 || !["title", "author"].includes(name))) return fail("Use a single quoted string only for title or author.");
         let value = quoted ? valueTokens[0].value : source.slice(valueTokens[0].start, valueTokens.at(-1).end).trim();
-        if (!protectedText && dotBeforeField(pos)) sentenceBoundedFields.add(key);
+        if (dotBeforeField(pos) || explicitFieldAt(pos)) sentenceBoundedFields.add(key);
         if (!quoted && nextField(pos)) {
             const clean = withoutBoundaryDot(value);
             if (!protectedText && clean !== value) sentenceBoundedFields.add(key);
@@ -214,7 +235,7 @@ export function parseLibraryCommand(input) {
         if (protectedText || tokens[pos]?.kind === "comma") delimitedFields.add(key);
         if (!quoted && (extraCommand.test(value) || /\b\w+:/.test(value))) return fail("Ambiguous value or multiple commands. Use one command; quote literal title/author text.");
         const numericValue = name === "duration" ? value.replace(/\s+minutes?$/i, "").trim() : value;
-        command.fields[key] = name === "pages" || name === "duration" ? positiveInteger(numericValue)
+        command.fields[key] = label.numeric ? positiveInteger(numericValue)
             : name === "type" ? value.toLowerCase() : value;
         if (dotBeforeField(pos)) pos++;
         if (tokens[pos]?.kind === "comma") {

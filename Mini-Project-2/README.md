@@ -6,7 +6,7 @@ Mevcut Library uygulamasına İngilizce metin komutu paneli, Azure STT ile mikro
 
 **Kullanıcının manuel bildirimi:** Kullanıcı, DVD parser düzeltmesini gerçek mikrofonla yeniden denediğini ve çalıştığını bildirdi. İlgili hata örneği `Create item type DVD title Inception author Christopher Nolan Duration. 148 minutes.` transkriptiydi. Ayrıca İngilizce TTS yanıtlarının hoparlörden doğru duyulduğunu ve önceki metin komutlarının çalıştığını bildirdi. Bunlar kullanıcıya aittir; asistanın gerçekleştirdiği gerçek mikrofon/Azure testleri değildir. Tüm endpoint seslerinin veya ses hata/iptal senaryolarının ayrı ayrı doğrulandığı sonucu çıkarılmadı. Aşağıdaki yeni karma ayırıcı düzeltmesi henüz kullanıcı tarafından yeniden doğrulanmadı.
 
-**Otomatik/mock sonuçlar:** Karma ayırıcı düzeltmesinden sonra **51 Python / 87 Node.js testi** ve **29 yerel Flask/headless metin paneli kontrolü** geçti. İki yeni tam transkript doğru gövdeyle birer POST gönderdi; saklanan alanlar GET ile doğrulandı. Mikrofon/TTS istekleri bu metin kontrolünde engellidir. Headless kontrolün gerçek sayfa/Flask kullanması, mock SDK/medya kontrollerinin gerçek sesli doğrulama olduğu anlamına gelmez. Önceki aşamalardaki test sayıları ve o aşamada bekleyen doğrulamalar aşağıda tarihsel kayıt olarak korunur.
+**Otomatik/mock sonuçlar:** Toplu PUT/PATCH incelemesinde **51 Python / 103 Node.js testi** geçti. İzole ID 3/6 Book kurulumu ile **21 headless adımı** tamamlandı: 9 PUT, 4 PATCH, 6 hatalı girdi ve başarılı PUT sonrasında yenileme hatası/yalnızca GET ile tekrar kontrolleri. Ayrıca önceki **29 Command/CREATE**, mock mikrofon ve mock TTS headless senaryoları yeniden geçti; JavaScript hatası görülmedi. Tür için önce GET, ardından tek doğru PUT/PATCH ve saklanan alanlar doğrulandı; normal koleksiyon değiştirilmedi. Donanım/Azure kullanılmadı; medya mock veya kapalıdır. Önceki aşamalardaki sonuçlar tarihsel kayıt olarak korunur.
 
 **2026-11-02 belge ve Git kontrolü (tarihsel kayıt):** README/PROMPTS güncellendi. Ek whitespace kontrolünde bulunan `speech_service.py` sonundaki fazladan boş satır kaldırıldı; uygulama davranışı değiştirilmedi. Python dosyasındaki bu biçim temizliği sonrası **51 Python testi yeniden geçti**; JavaScript değişmediği için önceki **81 Node.js** sonucu korunup testler tekrarlanmadı. Kurulum komutları, boş anahtarlı `.env.example`, port 5002 ve komut etiketleri mevcut kodla karşılaştırıldı. Gerçek `.env`, `.venv`, `__pycache__`, `.test-deps` ve geçici ses yolları Git dışında; `.env.example` izlenebilir. PROMPTS geliştirme istemlerini ve doğrulanmış hata/düzeltme geçmişini içerir; eksik geçmiş eklenmedi. O kontrol sırasında proje henüz untracked olduğundan normal/staged `git diff --check` yanında, Git'e eklemeden 32 izlenebilir dosya `--no-index --check` ile de kontrol edildi; son kontrolde whitespace sorunu kalmadı. Stage/commit kullanıcıya bırakıldı.
 
@@ -43,6 +43,7 @@ PowerShell test komutları (`Mini-Project-2` içinden):
 .\.venv\Scripts\python.exe -B -m unittest discover -p "test_*.py"
 node --test test_commands.mjs test_script.js test_voice_input.mjs test_spoken_responses.mjs
 .\.venv\Scripts\python.exe -B check_commands_browser.py
+.\.venv\Scripts\python.exe -B check_put_browser.py
 .\.venv\Scripts\python.exe -B check_voice_browser.py
 .\.venv\Scripts\python.exe -B check_spoken_browser.py
 ```
@@ -104,6 +105,7 @@ Mini-Project-2/
   test_custom_classes.py
   test_script.js
   test_commands.mjs
+  command-regression-cases.json
   test_voice.py
   test_tts.py
   test_voice_input.mjs
@@ -111,6 +113,7 @@ Mini-Project-2/
   speech-test-helpers.mjs
   voice-test-helpers.mjs
   check_commands_browser.py
+  check_put_browser.py
   check_voice_browser.py
   check_spoken_browser.py
 ```
@@ -279,6 +282,30 @@ ID'ler mevcut koleksiyona göre seçilir; bu örnekler otomatik çalıştırıla
 
 ### Gramer ve belirsizlik sınırları
 
+#### PUT/PATCH toplu inceleme — 2026-11-03
+
+| Örnek | Bu çalışma öncesindeki sonuç | Sonuç |
+| --- | --- | --- |
+| A: `Replace item six. Title revised Hobbit. Author Tolkien, pages 200.` | Önceki takip düzeltmesi sayesinde zaten geçiyordu. | Geçiyor; ID 6, küçük harfle revised korunur. |
+| B: `Replace item six. Title revised Hobbit author. Tolkien, pages 200.` | author. tanınmıyor; author başlığa katılıyor ve PUT alanları eksik kalıyordu. | Geçiyor; ID 6. |
+| C: `Replace item 3 titled Revised Hobbit author Tolkien, pages 200.` | İlk metin alanı gelecekteki virgül nedeniyle korunup author değerini yutuyordu. | Geçiyor; ID 3, büyük harfle Revised korunur. |
+| D: Aynı girdinin `title` biçimi | C ile aynı eksik author hatası. | Geçiyor; ID 3. |
+| `Update item three pages three hundred thirty.` | Zaten ID 3 / page_count 330 olarak ayrışıyordu. | Parser ve gerçek Command panelinde geçiyor; bu çıplak girdide yeniden üretilebilen hata düzeltilmiş gibi sunulmaz. |
+| `Update item 3 pages 330.` | Zaten geçiyordu. | Parser ve gerçek panelde geçiyor. |
+| Dış tipografik tırnaklı PATCH | Tanılama girdisinde baştaki tırnak nedeniyle Unknown command üretiyordu. | Yalnızca eşleşmiş açık dış çift tanınır; gerçek Azure girdisinin böyle olduğu doğrulanmadı. |
+
+Kullanıcının PATCH için bildirdiği `Unknown command` hatasının **çıplak girdiyle kesin nedeni yeniden üretilemedi**. Ekrandaki birebir Azure transkripti doğrulanmış değildir; dış tırnaklar kullanıcı girdisinin bir parçası olarak kaydedilmez. `command-regression-cases.json` bildirilen transkriptler ile yalnızca tanılama için oluşturulan örnekleri ayrı origin etiketleriyle tutar; aynı tablo parser, gerçek form/runner ve headless kontrollerde kullanılır. Önceki Arthur denemesi bu Author örneklerinden ayrıdır; Arthur → author dönüşümü yoktur.
+
+Ortak etiket tablosu CREATE/PUT/PATCH için aynıdır. Etiketin son sözcüğündeki tek nokta veya hemen sonrasındaki iki nokta hem metin hem sayısal alanlarda desteklenir: `title.`, `titled.`, `author.`, `pages.`, `duration.`. Global ayırıcı modu yoktur. Bir metin alanı **açık sol bölüm ayırıcısıyla** başlıyorsa yalın etiket sözcükleri literal tutulur; yalnızca daha sonra virgül gelmesi önceki metin akışını korumalı bölüme dönüştürmez. Böylece C/D gibi PUT'larda author ayrı alan olur. Nokta/iki noktayla açıkça işaretlenmiş sonraki etiket veya etiket öncesi cümle noktası yapısal sınırdır; bu diziyi başlığın içinde literal tutmak için tırnak kullanın. İçerikteki bütün noktalama veya harfler normalleştirilmez.
+
+Yalnızca tüm komutun dışında eşleşen `“…”` veya `‘…’` çifti ve içeride bilinen komut başlangıcı varsa dış çift ayrılır. Tek dış çift kaldırılır; içteki JSON çift tırnaklı değerler ve literal tipografik tırnaklar korunur. Uyumsuz/yarım dış tırnak, bilinmeyen komut, bozuk sayı veya belirsiz iki metin alanı ağ isteğinden önce reddedilir. Tüm tırnakları silme veya Arthur gibi sözcükleri tahminen değiştirme yapılmaz. Bu değişikliklerin gerçek mikrofon/Azure ile yeniden doğrulaması bekliyor.
+
+#### Noktalı PUT/PATCH takip düzeltmesi — 2026-11-03
+
+Gerçek transkript `Replace item six. Title revised Hobbit. Author Tolkien, pages 200.` düzeltme öncesinde `Replace requires title, author and pages or duration.` hatasını verdi. UI bu mesajın önüne `Sorry, ` ekler. Bu yeni Tolkien transkripti–hata çifti, önceki Arthur içeren denemeden ayrıdır. `six.` zaten ID 6 olarak doğru okunuyordu: ID noktasını kaldırmak hatayı düzeltmedi. Pages öncesindeki virgül nedeniyle ilk Title alanı yerel korunan bölüm sayılıyor, `revised Hobbit. Author Tolkien` başlığın tamamı oluyordu. Author alanı oluşmadığından PUT eksik şema hatası veriyordu. Virgül kaldırıldığında alanlar doğru ayrışıyordu. Benzer PATCH ise eski kodda yanlış başlıkla iki alan döndürebiliyordu; yeni regresyon bunun sessizce sürmesini önler.
+
+Artık tek cümle noktası ve ardından gelen bilinen alan etiketi, bölüm sonunda virgül olsa da açık alan sınırıdır. Tam transkript `PUT /api/items/6` için `{"title":"revised Hobbit","author":"Tolkien","page_count":200}` üretir. Ortak parser düzeltmesi CREATE/PUT/PATCH'e uygulanır; ID/sayı veya bütün metin üzerinde genel noktalama temizliği yapılmaz. `J.D.`/`J.` gibi baş harf noktaları sınır sayılmaz. Nokta + bilinen etiket dizisini tek başlık içinde literal olarak tutmak istiyorsanız tırnaklayın: `title "Notes. Author biography"`. Etiket öncesinde olmayan noktalar ve tırnak içindeki içerik korunur. Eksik/geçersiz PUT veya belirsiz PATCH, tür GET'inden önce reddedilir. Bu düzeltme için yeni gerçek mikrofon/Azure doğrulaması yapılmadı.
+
 #### Karma ayırıcı düzeltmesi — 2026-11-03
 
 Şu iki gerçek transkript değişiklik öncesinde ayrı ayrı yeniden üretildi ve ikisi de `Create requires type book or DVD.` hatasını verdi:
@@ -339,7 +366,8 @@ Yerelde sorun sürerse uygulamanın `http://127.0.0.1:5002` adresinde güncel Mi
 
 - Komut, etiket ve tür büyük/küçük harften etkilenmez; `DVD` ve `DVDs` ilgili örneklerde desteklenir. Sözdiziminde fazla boşluk, sekme ve satır sonları kabul edilir. Başlık/yazarın harfleri ve iç boşlukları korunur. Komut sonundaki bitişik `.`, `!`, `?`, `;`, `:` işaretleri veya dizileri (`?!`, `...`) ayrılabilir; tırnak içi noktalama korunur. Sonda virgül eksik sonraki alan sayılır ve reddedilir. Metni son noktalaması dahil tam korumak için çift tırnak kullanın.
 - `type`, `title`/`titled`, `author`, `page`/`pages`/`page count`, `duration`/`duration in minutes` açık etiketlerdir. Eş anlamlılar aynı API alanına dönüşür; örneğin title ile titled veya page ile pages tekrar edilirse yinelenen alan hatasıdır. Alan sırası değişebilir ve aynı komutta virgül, açık etiket, nokta, noktalı virgül ve iki nokta birlikte kullanılabilir. Bir ayırıcı diğer bölümlerdeki sınırları kapatmaz.
-- **Yerel metin bölümü:** Başlık/yazar etiketi, ayırıcıyla sınırlandırılmış bir bölümün başındaysa o bölümdeki tırnaksız değer sonraki ayırıcıya veya komut sonuna kadar korunur. `Create item type book, title The author of pages, author Test Author, pages 500` geçerlidir. `Update item 3, title X author Y` tek title alanını `X author Y` yapar; metin içindeki author yeni alan sayılmaz. Komutun ilk metin bölümü sağındaki virgülle de açıkça sınırlandırılabilir. Virgül/noktalı virgül/bölüm ayıran iki nokta aynı yerel kuralı kullanır.
+- **Yerel metin bölümü:** Başlık/yazar etiketi açık sol ayırıcının ardından bölüm başındaysa o bölümdeki yalın etiket sözcükleri literal tutulur. `Create item type book, title The author of pages, author Test Author, pages 500` geçerlidir. `Update item 3, title X author Y` tek title alanını `X author Y` yapar. Sağda sonradan gelen virgül, açık alan akışındaki önceki title/author sınırlarını kapatmaz. Virgül/noktalı virgül/bölüm ayıran iki nokta aynı yerel kuralı kullanır. Açık nokta/iki nokta işaretli etiketler aşağıdaki yapısal sınır kuralına girer; literal kullanım için tırnak gerekir.
+- **Açık işaretli sınır:** Tırnaksız değerde tek cümle noktası ve hemen sonraki bilinen etiket veya sonraki etiketin sonundaki nokta/iki nokta ayrı sınırdır: `Title revised Hobbit. Author Tolkien, pages 200` ve `Title revised Hobbit author. Tolkien, pages 200`. Bu açık sınır yerel metin korumasına rağmen çalışır. Baş harf noktaları bu kurala girmez. `Notes. Author biography` dizisi tek literal başlıksa tırnaklayın; parser açık sınır gramerini uygular, iki anlam arasında tahmin yapmaz.
 - **Açık etiket akışı:** Type ve sayısal değerler sonraki açık etikette durur. Ayrı bir metin bölümü olarak korunmayan title/author değerleri de açık etiketlerle ayrılır; örneğin `Create item type book titled Hobbit author Tolkien, pages 500`. Literal etiket sözcüğü içeriyorsa değeri tırnaklayın. Tırnaklı title/author tek atomdur; ardından ayırıcı olmadan başka açık etiket gelebilir. `Create item type book title "The author of pages" author "Test Author", pages 500` geçerlidir. JSON string kaçışları desteklenir; literal virgül/nokta için de tırnak kullanılır.
 - **Belirsizlik korunur:** `Update item 3 pages 500 title The author of books` gibi sınırlandırılmamış iki isteğe bağlı title/author yorumundan biri tahmin edilmez. `Create item type book title Hobbit, author Tolkien pages 500` örneğinde author bölümünün içindeki pages veri olabilir; parser eksik sayfa alanını tahminle ayırmaz. `author "Tolkien" pages 500` veya `author Tolkien, pages 500` ile yalnızca ilgili sınırı açıklaştırın. Komutun tamamına tek bir ayırıcı tarzı zorunlu değildir. Eksik/tekrarlı/geçersiz alanlarda API isteği gönderilmez.
 - `id`, `is_available`, `page_count`, `director`, `publisher`, `isbn`, `year`, `available`, `status` bölüm başında alan etiketi olarak kullanılamaz. Virgülle sınırlandırılmış bir title/author değerinin içinde ise literal kelime olarak bulunabilirler. Virgülsüz biçimde bunlar da ayrılmış sınır sözcükleridir; literal kullanım için tırnak gerekir. API alan adı `page_count`, desteklenen komut etiketleri ise `page`, `pages` ve `page count`tur.

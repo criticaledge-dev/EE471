@@ -6,6 +6,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const vm = require("node:vm");
+const commandCases = JSON.parse(fs.readFileSync(path.join(__dirname, 'command-regression-cases.json'), 'utf8'));
 
 const book = { id: 1, type: "book", title: "<img src=x onerror=alert(1)>",
     author: "Writer", page_count: 100, is_available: true };
@@ -715,6 +716,121 @@ test('mixed invalid or ambiguous fields never reach an API preflight or mutation
         const before = h.requests.length; h.ui['command-text'].value = text;
         const result = await h.ui['command-form'].trigger('submit');
         assert.equal(result.ok, false, text); assert.equal(h.requests.length, before);
+    }
+});
+
+test('dotted PUT and PATCH use real form binding, fresh GET 6 and a single exact write', async () => {
+    const fields = {title: 'revised Hobbit', author: 'Tolkien', page_count: 200};
+    for (const [text, method] of [
+        ['Replace item six. Title revised Hobbit. Author Tolkien, pages 200.', 'PUT'],
+        ['Replace item 6. Title revised Hobbit. Author Tolkien, pages 200.', 'PUT'],
+        ['Update item six. Title revised Hobbit. Author Tolkien, pages 200.', 'PATCH'],
+    ]) {
+        const h = await setup(); const current = {...book, id: 6};
+        h.replies.push({status: 200, body: current}, {status: 200, body: {...current, ...fields}}, {status: 200, body: []});
+        const before = h.requests.length; h.ui['command-text'].value = text;
+        assert.equal((await h.ui['command-form'].trigger('submit')).ok, true, text);
+        const requests = h.requests.slice(before);
+        assert.equal(requests[0].url, '/api/items/6'); assert.equal(requests[0].method || 'GET', 'GET');
+        assert.equal(requests[1].url, '/api/items/6'); assert.equal(requests[1].method, method);
+        const writes = requests.filter(r => ['POST', 'PUT', 'PATCH', 'DELETE'].includes(r.method));
+        assert.equal(writes.length, 1); assert.deepEqual(JSON.parse(writes[0].body), fields);
+    }
+});
+
+test('invalid dotted PUT and ambiguous PATCH are rejected before even the type lookup', async () => {
+    const h = await setup();
+    for (const text of ['Replace item six. Title revised Hobbit. Author Tolkien',
+        'Replace item six. Title revised Hobbit, pages 200',
+        'Replace item six. Title revised Hobbit. Author Tolkien, pages -200',
+        'Replace item six. Title revised Hobbit. Author Tolkien, pages 2.5',
+        'Update item six pages 200 title The author of books']) {
+        const before = h.requests.length; h.ui['command-text'].value = text;
+        assert.equal((await h.ui['command-form'].trigger('submit')).ok, false, text);
+        assert.equal(h.requests.length, before, text);
+    }
+});
+
+test('all reported PUT/PATCH table cases use form submit, GET current type and one exact mutation', async () => {
+    for (const example of commandCases) {
+        const current = {...book, id: example.item_id}, h = await setup();
+        h.replies.push({status: 200, body: current}, {status: 200, body: {...current, ...example.fields}}, {status: 200, body: []});
+        const before = h.requests.length; h.ui['command-text'].value = example.text;
+        const result = await h.ui['command-form'].trigger('submit');
+        assert.equal(result.ok, true, example.case);
+        const sent = h.requests.slice(before), url = '/api/items/' + example.item_id;
+        assert.equal(sent[0].url, url); assert.equal(sent[0].method || 'GET', 'GET');
+        assert.equal(sent[1].url, url); assert.equal(sent[1].method, example.method);
+        assert.deepEqual(JSON.parse(sent[1].body), example.fields);
+        assert.equal(sent.filter(r => r.method && r.method !== 'GET').length, 1);
+        assert.equal(h.ui['command-text'].value, example.text); // Keep original transcript, including diagnostic wrappers.
+    }
+});
+
+test('bad outer quotes, invalid fields and real ambiguity send no API request from the form', async () => {
+    const h = await setup();
+    for (const text of ['\u201cUpdate item 3 pages 330.', 'Replace item 3 title. Hobbit author. Tolkien',
+        'Replace item 3 title. Hobbit titled. Other author. Tolkien, pages 200',
+        'Replace item 3 title. Hobbit author. Tolkien, pages -200',
+        'Replace item 3 title. Hobbit author. Tolkien, pages 2.5',
+        'Replace item 3 titled Hobbit Arthur Tolkien, pages 200',
+        'Update item 3 pages 200 title The author of books']) {
+        const before = h.requests.length; h.ui['command-text'].value = text;
+        const result = await h.ui['command-form'].trigger('submit');
+        assert.equal(result.stage, 'parser'); assert.equal(h.requests.length, before, text);
+    }
+});
+
+test('PUT/PATCH refresh failures keep success and retry only GET without another mutation or speech', async () => {
+    const {mockSpeech} = await import('./speech-test-helpers.mjs');
+    const {settle} = await import('./voice-test-helpers.mjs');
+    for (const example of commandCases.filter(c => ['PUT B', 'PATCH words'].includes(c.case))) {
+        const speech = mockSpeech(), h = await setup(undefined, {speechEnvironment: speech.env});
+        const current = {...book, id: example.item_id};
+        h.ui['spoken-enabled'].checked = true; h.ui['spoken-enabled'].trigger('change');
+        h.replies.push({status: 200, body: current}, {status: 200, body: {...current, ...example.fields}}, new Error('offline'));
+        h.ui['command-text'].value = example.text;
+        const result = await h.ui['command-form'].trigger('submit'); await settle();
+        assert.equal(result.ok, true); assert.ok(result.warning); assert.equal(h.ui['command-error'].hidden, true);
+        const before = h.requests.length;
+        h.replies.push({status: 200, body: []}); await h.ui['command-form'].trigger('submit'); await settle();
+        assert.equal(h.requests.length, before + 1); assert.equal(h.requests.at(-1).url, '/api/items');
+        assert.equal(h.requests.at(-1).method || 'GET', 'GET');
+        assert.equal(h.requests.filter(r => r.method === example.method).length, 1);
+        assert.equal(speech.state.requests.length, 1);
+    }
+});
+
+test('PUT/PATCH success UI and speech wait for actual mutation response; double submit remains blocked', async () => {
+    const {mockSpeech} = await import('./speech-test-helpers.mjs');
+    const {settle, deferred} = await import('./voice-test-helpers.mjs');
+    for (const example of commandCases.filter(c => ['PUT B', 'PATCH words'].includes(c.case))) {
+        const pending = deferred(), speech = mockSpeech(), h = await setup(undefined, {speechEnvironment: speech.env});
+        const current = {...book, id: example.item_id};
+        h.ui['spoken-enabled'].checked = true; h.ui['spoken-enabled'].trigger('change');
+        h.replies.push({status: 200, body: current}, () => pending.promise, {status: 200, body: []});
+        h.ui['command-text'].value = example.text;
+        const running = h.ui['command-form'].trigger('submit'); await settle();
+        assert.equal(h.ui['command-result'].hidden, true); assert.equal(speech.state.requests.length, 0);
+        assert.equal((await h.ui['command-form'].trigger('submit')).busy, true);
+        pending.resolve({status: 200, body: {...current, ...example.fields}});
+        assert.equal((await running).ok, true); await settle();
+        assert.equal(h.requests.filter(r => r.method === example.method).length, 1);
+        assert.equal(speech.state.requests.length, 1);
+    }
+});
+
+test('mock microphone transcripts PUT B/C and bare PATCH enter the same parser and runner once', async () => {
+    const {mockVoiceEnvironment, settle} = await import('./voice-test-helpers.mjs');
+    for (const example of commandCases.filter(c => ['PUT B', 'PUT C', 'PATCH words'].includes(c.case))) {
+        const voice = mockVoiceEnvironment(), h = await setup(undefined, {voiceEnvironment: voice.env});
+        const current = {...book, id: example.item_id};
+        h.replies.push({status: 200, body: {text: example.text, language:'en-US'}},
+            {status: 200, body: current}, {status: 200, body: {...current, ...example.fields}}, {status: 200, body: []});
+        await h.ui['voice-start'].trigger('click'); h.ui['voice-stop'].trigger('click'); await settle();
+        const writes = h.requests.filter(r => r.method === example.method);
+        assert.equal(writes.length, 1); assert.deepEqual(JSON.parse(writes[0].body), example.fields);
+        assert.equal(h.ui['voice-transcript'].textContent, example.text);
     }
 });
 

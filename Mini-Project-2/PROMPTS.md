@@ -752,3 +752,119 @@ Tek virgül global commaMode açıyor; diğer açık alan sınırları tanınmay
 - Gerçek yerel Flask/Chrome headless Command panelinde **29 kontrol geçti**, JavaScript hatası görülmedi. Beş tam CREATE regresyonu (önceki üç ve yeni iki) için doğru gövdeli beş POST ve gerçek GET doğrulaması görüldü; yeni örneklerin her biri tek POST gönderdi. İzole süreç koleksiyonu/geçici port kullanıldı; uygulama portu 5002 korunur. Mikrofon/TTS istekleri testte engellenir ve Chrome mute çalışır.
 - `test_commands.mjs`, `test_script.js`, `check_commands_browser.py`, README ve bu kayıt güncellendi. Yalnızca Mini-Project-2 içinde çalışıldı. Gerçek .env okunmadı. Commit/push/merge yapılmadı.
 - Gerçek kullanıcı mikrofonuyla **bu karma ayırıcı düzeltmesinin yeniden doğrulaması yapılmadı**. Önceki DVD ve İngilizce TTS manuel bildirimleri bu yeni düzeltmenin veya tüm ses senaryolarının doğrulaması sayılmaz. Önceki yeniden üretilemeyen iki ayrı CREATE vakasının belirsizliği değiştirilmedi.
+
+## Noktalı gerçek PUT transkripti — takip düzeltmesi (2026-11-03)
+
+### İstem özeti ve kesinleşen hata çifti
+
+Kullanıcı, `Replace item six. Title revised Hobbit. Author Tolkien, pages 200.` girdisinin hata verdiğini bildirdi. İlk bildirimde son denemenin hata mesajı paylaşılmamıştı; ardından kesin mesaj **`Sorry, Replace requires title, author and pages or duration.`** olarak ayrıca verildi. Bu kayıt yalnızca bu Tolkien transkripti–hata çiftini kullanır. Önceki Arthur içeren denemenin tam girdisi veya hata mesajı buraya taşınmadı, tahmin edilmedi.
+
+Beklenen istek:
+
+```http
+PUT /api/items/6
+```
+
+```json
+{"title":"revised Hobbit","author":"Tolkien","page_count":200}
+```
+
+Kullanıcı güncel branch/kod durumunun bildirilmesini ve önceki karma ayırıcı düzeltmesinin varlığının kontrol edilmesini istedi. Main tek başına durma nedeni değil; yalnızca Mini-Project-2 içinde takip düzeltmesine yetki verdi. ID sonu nokta, Title/Author öncesindeki noktalar ve pages öncesindeki virgül ayrı incelenmeli; doğrulanan neden ortak CREATE/PUT/PATCH parser'ında düzeltilmeli. Başlık/yazar içeriği genel noktalama silmeyle bozulmamalı; belirsizlik tahminle mutasyona dönmemeli. Gerçek transkript/rakamlı ID, tam virgüllü/virgülsüz PUT, benzer PATCH, noktalı adlar/tırnaklar/eski CREATE ve hatalı girdiler regresyona alınmalı. Geçerli işlemde tür GET'i ve tek doğru PUT doğrulanmalı. Gerçek Flask/headless testinde ID 6 Book yalnızca test kurulumunda hazırlanmalı; normal koleksiyon değiştirilmemeli. STT/model/API değişikliği, .env okuma, commit/push/merge yok.
+
+### Başlangıç ve ayrı yeniden üretimler
+
+- Aktif branch **main** idi; Mini-Project-2 çalışma ağacı başlangıçta temizdi. Title/titled eş anlamlıları ve önceki global commaMode kaldırma düzeltmesi kodda mevcuttu. Kullanıcının bu takip görevi için verdiği main yetkisiyle devam edildi; branch değiştirilmedi/oluşturulmadı. AGENTS.md bulunmadı.
+- Tam transkript parser'da `Replace requires title, author and pages or duration.` hatasını verdi; mevcut UI aynı hataya `Sorry, ` ön ekini ekler. Bu, kullanıcı tarafından sonradan verilen kesin mesajla eşleşir.
+- Yalnızca ID sonu nokta kaldırılıp `item six Title ...` yapıldığında hata sürdü. ID yolu `six.` sözcüğünü zaten `six` → **6** olarak doğru çözümlüyordu.
+- Hobbit sonundaki nokta kaldırıldığında da hata sürdü. Title alanı, daha sonraki pages virgülü nedeniyle yerel korunan bölüm olarak okunuyordu; `revised Hobbit. Author Tolkien` tek title değeri kalıyor, author alanı oluşmuyordu.
+- Yalnızca pages öncesindeki virgül kaldırıldığında noktalı PUT doğru üç alanı verdi. Tam virgüllü ve tam virgülsüz PUT kontrol örnekleri de zaten çalışıyordu. Sorun PUT endpoint'i veya Tolkien sözcüğü değil, açık cümle sınırının yerel metin koruması içinde devre dışı kalmasıydı.
+- Benzer `Update item six. Title revised Hobbit. Author Tolkien, pages 200.` girdisi eski parser'da hata vermeden `title: revised Hobbit. Author Tolkien` ve `page_count: 200` döndürüyordu; author ayrı değildi. Bu yanlış alan birleştirme yalnızca parser'da yeniden üretildi; gerçek koleksiyona yanlış PATCH uygulanmadı.
+
+### Düzeltme ve kapsam
+
+- `static/command-parser.mjs`: Bilinen alan etiketinin önündeki tek cümle noktası, bölüm sonunda virgül olsa da açık alan sınırı kabul edilir. Ayrı nokta token'ı ve tam sözcüğün sonundaki nokta aynı sınır davranışını kullanır. ID/sayı çözümlemesi değiştirilmedi; kaynak metinden genel noktalama silinmedi. Ortak parser düzeltmesi CREATE/PUT/PATCH akışlarına uygulanır.
+- `J.D.` ve `J.` gibi baş harf noktaları cümle sınırı sayılmaz. Bilinen etiketten önce olmayan iç noktalar ve tırnak içindeki tüm literal içerik korunur. `title "Notes. Author biography"` tek başlıktır; tırnaksız nokta + bilinen etiket dizisi açık gramer sınırıdır. Ayırıcı işareti olmadan iki isteğe bağlı title/author yorumu gerektiren PATCH belirsizliği reddedilmeye devam eder.
+- `test_commands.mjs`: Beş yeni test tam gerçek/rakamlı ID PUT, ID noktası kontrolü, ayrı nokta, eşdeğer virgüllü/virgülsüz PUT, benzer PATCH, noktalı adlar/tırnaklı metinler, eksik/geçersiz alanlar ve saf ortak runner'da tür GET'i + tek PUT'u kapsar.
+- `test_script.js`: İki yeni test gerçek form olay bağlantısı ve ortak runner üzerinden GET /api/items/6 → tek PUT/PATCH /api/items/6 sırasını, tam JSON gövdesini ve geçersiz/belirsiz örneklerde tür GET'i dahil sıfır API isteğini doğrular.
+- Yeni `check_put_browser.py`: Gerçek LibraryCollection ile beş test Book'u ve ID 6 Book fixture'ı yalnızca izole test sürecinde oluşturulur. Normal uygulama koleksiyonu patch süresi dışında korunur; test sonunda nesne ve içerik eşitliği ayrıca kontrol edilir. Gerçek sayfa/Flask üzerinden istek sırası, tek yazma, body ve kaydedilen alanlar doğrulanır. Mikrofon/TTS/SDK dotenv çağrıları engellenir; Chrome mute çalışır. Normal uygulamanın başlangıç verileri değiştirilmedi.
+- README gramer, yeni kontrol komutu ve güncel test sonuçları için güncellendi. STT/TTS, model ve API kodu/sözleşmesi değiştirilmedi; port 5002 korunur.
+
+### Çalıştırılan kontroller ve gerçek sonuçlar
+
+- **94 Node.js testi geçti**: `node --test --test-reporter=dot test_commands.mjs test_script.js test_voice_input.mjs test_spoken_responses.mjs`. Önceki 87 test ve CREATE karma ayırıcı regresyonları korunup yedi test eklendi.
+- İlk Python/headless başlatma girişimleri otomatik izin incelemesinin zaman aşımı/kapasite hataları nedeniyle çalıştırılmadı; bunlar test başarısızlığı olarak sayılmadı. Kullanıcı yeniden denemeye açık onay verdi; sonraki çağrı çalıştı ve aşağıdaki gerçek otomatik sonuçlar alındı.
+- **51 Python unittest testi geçti**; SDK/dotenv mock'ları kullanıldı. Gerçek .env/Azure çağrısı yapılmadı.
+- Yeni gerçek yerel Flask/headless kontrolde **10 senaryo geçti**: 5 PUT (tam gerçek, rakamlı ID, tam virgüllü, tam virgülsüz, tırnaklı/noktalı ad), 1 benzer PATCH ve 4 beklenen hatalı giriş. Fixture ID **6**; her geçerli örnekte önce tür GET'i, sonra **yalnızca bir** doğru PUT/PATCH, ardından gerçek GET ile kaydedilen alanlar kontrol edildi. Hatalı girişler hiç API isteği göndermedi. JavaScript hatası yoktu; normal koleksiyon değişmedi.
+- Önceki **29 gerçek Flask/headless Command kontrolü** de yeniden geçti; beş tam CREATE örneği tek doğru POST/GET ile doğrulandı, JavaScript hatası görülmedi.
+- Gerçek mikrofon/Azure veya ses oynatma yapılmadı. Bu takip düzeltmesinin kullanıcı tarafından gerçek mikrofonla yeniden doğrulandığı iddia edilmez. Önceki DVD ve TTS manuel bildirimleri kendi kapsamlarında korunur.
+- Yalnızca Mini-Project-2 içinde parser, iki Node test dosyası, yeni headless test ve belgeler değiştirildi. .env okunmadı. Git add/commit/push/merge yapılmadı.
+
+## PUT/PATCH toplu inceleme ve ortak alan kuralları — 2026-11-03
+
+### İstem özeti
+
+Kullanıcı demo sırasında hata veren PUT/PATCH komutlarını tek kapsamda, örneğe özel yamalar yerine CREATE/PUT/PATCH için ortak alan kurallarıyla inceleyip düzeltmeyi istedi. Önce aktif branch/status/kaynaklar okunmalı; main durma nedeni değil, yalnızca Mini-Project-2 yetkili. Mevcut değişiklikleri koru; port 5002/STT/model/API aynı kalsın. .env okuma/loglama, gerçek mikrofon/Azure, git add/commit/push/merge yok. Parser/runner/script/voice-input ve gerçek form/headless akışlarını incele; önceki karma ayırıcı ve title/titled desteğini gerçekten doğrula. Her örneğin önceki sonucunu/token ve sınır davranışını kaydet, sonra düzelt. Arthur → author dönüşümü yapma. Nokta/iki nokta metin/sayı etiketlerinde tutarlı olsun; içerik, noktalı adlar, tırnaklar, sayı ve güvenlik kontrolleri korunsun. Ayrı parser/iş motoru oluşturma; tam doğrulamadan ağ isteği, API başarısından önce başarı/ses veya yenileme hatası nedeniyle ikinci mutasyon olmasın. İzole Book ID 3/6 ile gerçek Command panelinde GET → tek PUT/PATCH/gövde/kayıt doğrulaması ve JavaScript hata kontrolü yap; eski CREATE, mikrofon ve TTS regresyonlarını koru. Yeniden üretilemeyen kullanıcı PATCH hatası için kesin neden uydurma; gerçek mikrofon doğrulamasını bekleyen olarak ayır.
+
+### Kullanıcının bildirdiği girdiler
+
+Bildirilen ortak PUT hata mesajı: `Sorry, Replace requires title, author and pages or duration.`
+
+```text
+A: Replace item six. Title revised Hobbit. Author Tolkien, pages 200.
+B: Replace item six. Title revised Hobbit author. Tolkien, pages 200.
+C: Replace item 3 titled Revised Hobbit author Tolkien, pages 200.
+D: Replace item 3 title Revised Hobbit author Tolkien, pages 200.
+```
+
+A/B için ID 6 ve küçük harfle `revised Hobbit`; C/D için ID 3 ve büyük harfle `Revised Hobbit` beklenir. Author Tolkien, page_count 200'dür. Önce tür GET'i, ardından tek PUT gerekir. Önceki ayrı Arthur Tolkien denemesi bu girdilerle birleştirilmedi; Arthur kişi adı olarak korunur.
+
+Kullanıcının PATCH için paylaştığı metin (ekrandaki birebir Azure transkripti olduğu **doğrulanmadı**):
+
+```text
+Update item three pages three hundred thirty.
+```
+
+Bildirilen hata: `Sorry, Unknown command. Use Create, List, Get, Replace, Update, Delete, Check out or Return.` Mesajdaki atıf tırnakları gerçek girdinin parçası sayılmadı. Ayrı tanılama örnekleri olarak `Update item 3 pages 330.` ve dışı eşleşmiş tipografik tırnaklı `“Update item three pages three hundred thirty.”` da denendi; sonuncusu kullanıcı tarafından birebir transkript olarak bildirilmiş değildir.
+
+### Başlangıç durumu ve değişiklik öncesi yeniden üretim
+
+- Branch **main** idi. Önceki turdan README, PROMPTS, parser, iki Node test dosyası değişikliği ve izlenmeyen check_put_browser.py mevcuttu; silinmedi/geri alınmadı. AGENTS.md bulunmadı. Global commaMode'un kaldırılmış olduğu, yerel bölüm koruması ve title/titled desteği kaynakta doğrulandı.
+- Parser'ın mevcut tokenizer/alan tanıması, sonuç doğrulaması ve script/voice-input'un aynı runCommandText/runner'a bağlanması okundu. Salt okunur tanılamada gerçek parser kaynak kodundan token/değerler incelendi; uygulama dosyasına tanılama/log eklenmedi, API çağrılmadı.
+
+| Girdi | Değişiklik öncesi gerçek yerel sonuç | İncelenen sınır/neden |
+| --- | --- | --- |
+| A | Zaten doğru üç alanla geçiyordu. | `Replace item` başlığı, `six.` → 6; Hobbit. öncesi değil, Hobbit. sonrasındaki Author etiketi önceki takip düzeltmesiyle ayrı okunuyordu. Demo hatası bu kod durumunda yeniden üretilmedi. |
+| B | PUT zorunlu alan hatası yeniden üretildi. | author. tek word token'ıydı; yalnızca sayısal etiketlerin terminal noktası desteklendiğinden alan sayılmıyordu. title `revised Hobbit author. Tolkien` oluyor, author eksik kalıyordu. |
+| C | Aynı PUT zorunlu alan hatası yeniden üretildi. | ID token'ı 3, titled zaten title olarak tanınıyordu; gelecekteki virgül, ilk title alanını korumalı bölüm saydığı için `Revised Hobbit author Tolkien` tek değer oluyordu. |
+| D | C ile aynı hata yeniden üretildi. | title normal etiketti; sorun eş anlamlı değil, sağdaki virgülün geriye dönük bölüm korumasıydı. |
+| Çıplak PATCH sayı kelimeleri | Zaten ID 3 / page_count 330 ile geçiyordu. | `Update item` başlığı tanınıyor; ID three ve pages değeri three hundred thirty, mevcut pozitif sayı çözümleyicisiyle doğru ayrılıyordu. |
+| Çıplak rakamlı PATCH | Zaten geçiyordu. | ID 3, pages 330; Unknown command üretilmedi. |
+| Dış tipografik tırnaklı PATCH tanılaması | Unknown command üretildi. | Baştaki U+201C nedeniyle başlık regex'i eşleşmiyordu. Bu tanılama, kullanıcının gerçek girdisinde dış tırnak bulunduğunu veya hatasının nedenini doğrulamaz. |
+
+### Ortak düzeltme ve korunmuş belirsizlikler
+
+- `static/command-parser.mjs`: Metin/sayı alanları artık tek etiket tablosuyla tanınır. Uzun etiket önce gelir, title/titled aynı title alanıdır; bilinen etiketin son sözcüğündeki tek nokta veya etiket sonrası iki nokta tüm alanlarda aynı mantıktadır. `title.`, `titled.`, `author.`, `pages.`, `duration.` ve ayrı nokta desteklenir. İçerik token'ları genel olarak yeniden yazılmaz.
+- Yerel metin koruması yalnızca **açık sol bölüm ayırıcısı** ile başlatılır. Henüz okunmamış sağ virgül ilk text alanını korumalı yapıp Author'ı yutmaz; C/D ve eşdeğer PUT böylece ortak açık etiket akışıyla çalışır. Sol virgülle başlayan metindeki yalın alan sözcükleri literal kalır; açık nokta/iki noktalı etiket veya önceki cümle noktası yapısal sınırdır. Bu işaretli diziyi literal başlık içinde tutmak için tırnak gerekir. Tırnaklı alan tek atom olarak korunur. Eksik/tekrarlı/bilinmeyen alan, sayı hatası ve işaretsiz iki isteğe bağlı text alanı belirsizliği reddedilir.
+- Yalnızca tüm komutun dışında eşleşmiş `“…”` veya `‘…’` çifti varsa ve içi bilinen komut başlangıcı taşıyorsa tek dış çift ayrılır. İç tırnaklar/literal tipografik karakterler silinmez; yarım/uyumsuz çift tahminle tamamlanmaz. Bu sınırlı dış tırnak desteği bir tanılama bulgusunu kapsar; çıplak PATCH için kullanıcı hatası düzeltilmiş veya nedeni doğrulanmış gibi sunulmaz.
+- Genel Arthur → author, noktalama silme, tüm transkripti küçültme veya doğrulama koruması kaldırma yoktur. J.D. Salinger, sayısal başlıklar, mevcut sayı/bozuk binlik denetimleri ve özgün Revised/revised yazımı korunur.
+- `command-regression-cases.json`: A/B/C/D, iki çıplak PATCH ve yalnızca tanılama olan dış tırnaklı örnek tek test tablosuna kondu. Origin alanları gerçek transkript bildirimi, birebirliği doğrulanmamış kullanıcı metni ve tanılama girdisini ayırır. Bu JSON yalnızca testlerde okunur; uygulama bağımlılığı veya ikinci parser değildir.
+- `test_commands.mjs` ve `test_script.js`: Tablo, etiket/ayraç matrisi, tırnak/Arthur/bozuk girdi, gerçek formdan doğru GET/yöntem/path/body, sıfır ağ isteğiyle parser hatası, mikrofon mock'undan ortak giriş, çift gönderim engeli ve API öncesi başarı/ses olmaması eklendi. Başarılı PUT/PATCH sonrası yenileme hatasında aynı komut yalnızca GET yeniler; yazma ve TTS bildirimi tekrar edilmez.
+- `check_put_browser.py`: Aynı test tablosunu gerçek sayfada kullanır; ID 3 ve 6 Book fixture'ları yalnızca izole koleksiyondadır. Güncel tür GET'i → tek doğru yazma → kaydedilen alanlar doğrulanır; normal koleksiyonun aynı kaldığı da kontrol edilir. Yenileme hatası ve yalnızca GET ile tekrar eklendi. Önceki eşdeğer PUT, noktalı/tırnaklı ad ve geçersiz girişler korunur. README güncel grameri ve doğrulama sınırlarını açıklar.
+- Runner, script ve voice-input kaynakları incelendi fakat değiştirilmedi; tek ortak parser/yürütme yolu kullanılır. Backend/model/API sözleşmesi, STT/TTS ve port 5002 değiştirilmedi. Kullanıcının mevcut değişiklikleri korundu.
+
+### Güncel sonuçlar
+
+| Girdi | Değişiklik sonrası ve gerçek Command paneli |
+| --- | --- |
+| A/B | GET /api/items/6 → tek PUT /api/items/6; title `revised Hobbit`, author Tolkien, page_count 200. |
+| C/D | GET /api/items/3 → tek PUT /api/items/3; title `Revised Hobbit`, author Tolkien, page_count 200. |
+| İki çıplak PATCH | GET /api/items/3 → tek PATCH /api/items/3, yalnızca `{"page_count":330}`. Önceden de çalışan girdi olarak korunur. |
+| Dış tırnaklı tanılama | Aynı PATCH akışı; sadece dış çift ayrılır. Kullanıcı hatasının kesin nedeni olduğu iddia edilmez. |
+
+- **103 Node.js testi geçti.** Bu turda mevcut 94 test yeniden çalıştırıldı; dört parser ve beş arayüz/runner testi eklendi. Önceki rapordaki sayı güncel test yerine kullanılmadı. Testler gerçek kaynak/form olaylarını ve mock DOM/ağ/medyayı kullanır.
+- Projedeki mevcut `.venv` ile SDK sürümü **1.53.0** doğrulandı; **51 Python unittest testi geçti**, SDK/dotenv I/O mock'tur. Gerçek .env okunmadı. İlk kısıtlı headless çalıştırmada Chrome `GPU process isn't usable` hatasıyla rapor üretmeden kapandı; bu uygulama/parser test başarısızlığı sayılmadı. Uygun süreç izniyle aşağıdaki gerçek headless kontroller yeniden çalıştırılıp tamamlandı.
+- **check_put_browser.py: 21 adım geçti**: 13 geçerli varyant (9 PUT, 4 PATCH), ayrıca başarılı bir PUT sonrasında liste yenileme hatası ve yalnızca GET tekrarı, 6 hatalı giriş. A/B/C/D ve PATCH örnekleri gerçek Command panelinde çalıştı; GET sonrası tek doğru mutasyon ve kaydedilen alanlar kontrol edildi. Parser hatasında ağ isteği yoktu; JavaScript error/unhandledrejection sıfırdı. ID 3/6 fixture koleksiyonu izoledir; normal koleksiyon değişmedi.
+- **check_commands_browser.py: önceki 29 adım geçti.** Gerçek CREATE transkriptleri ve diğer Library komutları korundu; beş tam CREATE için tek POST/gövde/GET doğrulaması ve sıfır JavaScript hatası.
+- **check_voice_browser.py** yeniden geçti: sekiz işlem ve parser hatası, 9 mock STT çağrısı, 10 kapatılan mock track, sıfır JavaScript hatası. **check_spoken_browser.py** yeniden geçti: 20 adım, 19 mock TTS/2 mock STT, 18 mock play/18 URL temizliği, 2 kapatılan mock track, sıfır JavaScript hatası. Bunlar gerçek mikrofon veya ses duyulması doğrulaması değildir.
+- Yeniden üretilemeyen nokta: Kullanıcının çıplak PATCH için bildirdiği Unknown command mesajının gerçek nedeni. İki çıplak metin başlangıç parser'ında ve güncel gerçek sayfada çalıştı; ekrandaki birebir Azure transkripti henüz doğrulanmadı. Önbellek, Azure veya dış tırnak kaynaklı olduğuna dair kesin iddia yoktur.
+- Bu toplu değişikliklerin **gerçek mikrofon/Azure ile yeniden kullanıcı doğrulaması bekliyor**. Önceki DVD/TTS manuel bildirimleri kendi kapsamlarında korunur. Gerçek mikrofon/Azure/ses oynatma yapılmadı; yalnızca Mini-Project-2 değiştirildi. .env okunmadı; git add/commit/push/merge yapılmadı.
