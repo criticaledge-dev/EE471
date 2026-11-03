@@ -1,0 +1,13 @@
+# Test-only override: never read task-1/.env, even if it exists later.
+# Combine with --env-file /dev/null and the main compose.yaml.
+services:
+  speech-studio:
+    env_file: !reset []
+    environment:
+      SPEECH_KEY: ""
+      SPEECH_REGION: ""
+  voice-calculator:
+    env_file: !reset []
+    environment:
+      SPEECH_KEY: ""
+      SPEECH_REGION: ""

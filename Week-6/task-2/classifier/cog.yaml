@@ -1,0 +1,11 @@
+image: ee471-week6-classifier
+build:
+  gpu: false
+  python_version: "3.12.9"
+  sdk_version: "0.23.1"
+  python_requirements: requirements.txt
+  # Source files are not available in build.run. Bake weights into a cached
+  # image layer, outside /src (Cog CLI may bind-mount the source directory).
+  run:
+    - "python -c \"import torch; from torchvision import models; torch.hub.set_dir('/opt/ee471/torch/hub'); models.resnet50(weights=models.ResNet50_Weights.IMAGENET1K_V1); print('Prepared ResNet50 IMAGENET1K_V1 CPU weights')\""
+run: "run.py:Runner"

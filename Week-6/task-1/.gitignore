@@ -1,0 +1,14 @@
+# Shared runtime secrets stay local; the empty example remains trackable.
+.env
+.env.*
+!.env.example
+*.wav
+*.mp3
+*.ogg
+*.pcm
+recordings/
+uploads/
+temp_audio/
+generated_audio/
+core
+core.*

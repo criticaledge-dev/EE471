@@ -1,0 +1,17 @@
+.git
+.env
+.env.*
+!.env.example
+.venv
+venv
+.test-deps
+__pycache__
+*.pyc
+.pytest_cache
+.cog
+outputs
+logs
+test-data
+*.log
+# Weights are created by build.run outside the source context in /opt/ee471.
+# Do not add /opt/ee471 as a runtime bind mount: it would hide image weights.

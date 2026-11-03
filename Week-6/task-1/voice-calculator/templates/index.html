@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EE471 Hesap Makinesi</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+    <script type="module" src="{{ url_for('static', filename='voice-input.mjs') }}"></script>
+</head>
+<body>
+    <main class="calculator-shell" aria-label="Hesap makinesi">
+        <div class="calculator">
+        <output id="display" class="display" aria-label="Sonuç" aria-live="polite">0</output>
+        <div class="keypad" aria-label="Hesap makinesi tuşları">
+            <button type="button" data-digit="7">7</button>
+            <button type="button" data-digit="8">8</button>
+            <button type="button" data-digit="9">9</button>
+            <button type="button" data-operation="divide" aria-label="Böl">÷</button>
+            <button type="button" data-digit="4">4</button>
+            <button type="button" data-digit="5">5</button>
+            <button type="button" data-digit="6">6</button>
+            <button type="button" data-operation="multiply" aria-label="Çarp">×</button>
+            <button type="button" data-digit="1">1</button>
+            <button type="button" data-digit="2">2</button>
+            <button type="button" data-digit="3">3</button>
+            <button type="button" data-operation="subtract" aria-label="Çıkar">−</button>
+            <button type="button" data-digit="0">0</button>
+            <button type="button" data-digit="." aria-label="Ondalık ayırıcı">.</button>
+            <button type="button" class="equals" data-action="equals" aria-label="Eşittir">=</button>
+            <button type="button" data-operation="add" aria-label="Topla">+</button>
+        </div>
+        </div>
+        <p id="error" class="error" role="alert" hidden></p>
+        <div class="utilities">
+            <button type="button" class="clear" data-action="clear">Temizle (Esc)</button>
+        </div>
+        <section class="voice-panel" aria-labelledby="voice-title">
+            <h2 id="voice-title">Sesli giriş · en-US</h2>
+            <p>En fazla 15 saniye. Örnek: “five plus two is”. “is” eşittir demektir.</p>
+            <button type="button" id="voice-start">Mikrofonu başlat</button>
+            <button type="button" id="voice-stop" disabled>Durdur ve işle</button>
+            <p id="voice-status" role="status" aria-live="polite">Hazır</p>
+            <p id="voice-error" role="alert" hidden></p>
+            <p>Tanınan metin: <span id="voice-transcript"></span></p>
+            <p>İşlem: <span id="voice-command"></span></p>
+        </section>
+        <section class="voice-panel" aria-label="Sesli çıkış">
+            <label><input type="checkbox" id="tts-enabled"> İngilizce sesli çıkış</label>
+            <p>Tuşları ve eşittir sonrası sonucu seslendirir. Mikrofon kullanımında durur.</p>
+            <p id="tts-status" role="status" aria-live="polite">Sesli çıkış modülü henüz yüklenmedi. Bu mesaj kalırsa sayfayı yenileyin ve modül yüklemesini kontrol edin.</p>
+            <p id="tts-error" role="alert" hidden></p>
+            <p id="tts-metrics">Henüz süre ölçülmedi.</p>
+        </section>
+    </main>
+</body>
+</html>

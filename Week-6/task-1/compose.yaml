@@ -1,0 +1,32 @@
+name: ee471-week6-task1
+services:
+  speech-studio:
+    image: ee471-week6-speech-studio:latest
+    pull_policy: never
+    build:
+      context: ./speech-studio
+    env_file:
+      - path: .env
+        required: true
+    ports:
+      - "127.0.0.1:5081:5000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/',timeout=3)"]
+      interval: 10s
+      timeout: 4s
+      retries: 5
+  voice-calculator:
+    image: ee471-week6-voice-calculator:latest
+    pull_policy: never
+    build:
+      context: ./voice-calculator
+    env_file:
+      - path: .env
+        required: true
+    ports:
+      - "127.0.0.1:5062:5000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/',timeout=3)"]
+      interval: 10s
+      timeout: 4s
+      retries: 5

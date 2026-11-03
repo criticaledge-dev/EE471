@@ -1,0 +1,4 @@
+# Same direct dependency versions as the source project's installed environment.
+flask==3.1.3
+python-dotenv==1.2.4
+azure-cognitiveservices-speech==1.53.0

@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Speech Studio — Speech Tools &amp; Live Diarization</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script defer src="{{ url_for('static', filename='script.js') }}"></script>
+  <script defer src="{{ url_for('static', filename='diarization.js') }}"></script>
+</head>
+<body>
+  <main>
+    <h1>Speech Studio</h1>
+    <p>İngilizce ve Türkçe metin ile ses dönüşümü. Konuşma işlemleri sırayla çalışır;
+      bir işlem sürerken tüm gönderim butonları bekler.</p>
+    <div class="features">
+    <section aria-labelledby="tts-heading">
+      <h2 id="tts-heading">Text to Speech</h2>
+      <p>Metinden 16 kHz, 16-bit, mono PCM WAV üretin.</p>
+      <form id="tts-form">
+      <label for="tts-text">Metin (en fazla 1000 karakter)</label>
+      <textarea id="tts-text" name="text" rows="7" maxlength="1000" required></textarea>
+      <label for="tts-language">Dil</label>
+      <select id="tts-language" name="language">
+        <option value="en-US">English (en-US)</option>
+        <option value="tr-TR">Türkçe (tr-TR)</option>
+      </select>
+      <button id="tts-generate" type="submit">Generate Speech</button>
+    </form>
+    <p id="tts-status" role="status" aria-live="polite"></p>
+    <p id="tts-error" class="error" role="alert" hidden></p>
+    <section id="tts-result" aria-label="Üretilen ses" hidden>
+      <audio id="tts-audio" controls></audio>
+      <a id="tts-download" download="speech.wav">WAV dosyasını indir</a>
+    </section>
+    </section>
+    <section aria-labelledby="stt-heading">
+      <h2 id="stt-heading">Speech to Text</h2>
+      <p class="notice">Yalnızca sıkıştırılmamış PCM WAV: 16-bit, mono, 16 kHz.
+      En fazla 1 MiB ve 30 saniye. Dosyanın tamamı continuous recognition ile
+      işlenir; birden fazla cümlenin kesinleşmiş sonuçları sırayla birleştirilir.</p>
+    <form id="stt-form">
+      <label for="stt-audio">WAV dosyası</label>
+      <input id="stt-audio" name="audio" type="file" accept=".wav,audio/wav" required>
+      <label for="stt-language">Kayıt dili</label>
+      <select id="stt-language" name="language">
+        <option value="en-US">English (en-US)</option>
+        <option value="tr-TR">Türkçe (tr-TR)</option>
+      </select>
+      <button id="stt-transcribe" type="submit">Transcribe</button>
+    </form>
+    <p id="stt-status" role="status" aria-live="polite"></p>
+    <p id="stt-error" class="error" role="alert" hidden></p>
+    <section id="stt-result" aria-labelledby="stt-result-heading" hidden>
+      <h2 id="stt-result-heading">Tanınan metin</h2>
+      <p id="stt-transcript"></p>
+      <button id="stt-copy" type="button">Metni kopyala</button>
+      <a id="stt-download" download="transcript.txt">TXT olarak indir</a>
+    </section>
+    </section>
+    <section aria-labelledby="translation-heading">
+      <h2 id="translation-heading">Speech Translation</h2>
+      <p class="notice">İngilizce → Türkçe veya Türkçe → İngilizce.
+        PCM WAV: 16-bit, mono, 16 kHz; en fazla 1 MiB ve 30 saniye.
+        Dosyanın tamamındaki kesinleşmiş konuşma ve çeviri parçaları sırayla birleştirilir.</p>
+      <form id="translation-form">
+        <label for="translation-audio">WAV dosyası</label>
+        <input id="translation-audio" name="audio" type="file" accept=".wav,audio/wav" required>
+        <label for="translation-source">Kaynak dil</label>
+        <select id="translation-source" name="source_language">
+          <option value="en-US">English (en-US)</option>
+          <option value="tr-TR">Türkçe (tr-TR)</option>
+        </select>
+        <label for="translation-target">Hedef dil</label>
+        <select id="translation-target" name="target_language">
+          <option value="tr">Türkçe (tr)</option>
+          <option value="en">English (en)</option>
+        </select>
+        <button id="translation-submit" type="submit">Translate Speech</button>
+      </form>
+      <p id="translation-status" role="status" aria-live="polite"></p>
+      <p id="translation-error" class="error" role="alert" hidden></p>
+      <section id="translation-result" aria-label="Çeviri sonucu" hidden>
+        <h3>Tanınan orijinal metin</h3>
+        <p id="translation-original" class="transcript"></p>
+        <h3>Çeviri</h3>
+        <p id="translation-text" class="transcript"></p>
+      </section>
+    </section>
+    <section aria-labelledby="pronunciation-heading">
+      <h2 id="pronunciation-heading">Pronunciation Assessment</h2>
+      <p>İngilizce referans metni okuyup kendi WAV kaydınızı yükleyin. Yalnızca en-US.</p>
+      <p class="notice">PCM WAV: 16-bit, mono, 16 kHz; en fazla 30 saniye ve 1 MiB.
+        Azure segment puanları 0–100 ölçeğinde gösterilir. Çok parçalı kayıtta toplam puan hesaplanmaz.
+        TTS kaydı yalnızca teknik test içindir; sizin telaffuzunuzu değerlendirmez.</p>
+      <form id="pronunciation-form">
+        <label for="pronunciation-reference">İngilizce referans metin (en fazla 500 karakter)</label>
+        <textarea id="pronunciation-reference" name="reference_text" rows="4" maxlength="500" required></textarea>
+        <label for="pronunciation-audio">Kendi WAV kaydınız</label>
+        <input id="pronunciation-audio" name="audio" type="file" accept=".wav,audio/wav" required>
+        <input name="language" type="hidden" value="en-US">
+        <button id="pronunciation-submit" type="submit">Assess Pronunciation</button>
+      </form>
+      <p id="pronunciation-status" role="status" aria-live="polite"></p>
+      <p id="pronunciation-error" class="error" role="alert" hidden></p>
+      <section id="pronunciation-result" aria-label="Telaffuz değerlendirmesi sonucu" hidden>
+        <h3>Gönderilen referans</h3>
+        <p id="pronunciation-reference-result" class="transcript"></p>
+        <p id="pronunciation-scope" class="notice"></p>
+        <div id="pronunciation-segments"></div>
+      </section>
+    </section>
+    <section aria-labelledby="diarization-heading">
+      <h2 id="diarization-heading">Live Diarization</h2>
+      <p>Konuşurken mikrofon sesi sunucuya aktarılır; sonuçlar Durdur'a basmadan görünebilir.</p>
+      <p class="notice">En fazla 60 saniye. Konuşmacı ID'leri Azure'un bu oturum için verdiği
+        etiketlerdir; gerçek kişi adı veya kalıcı kimlik değildir. Unknown, konuşmacının henüz
+        belirlenmediğini gösterir. Yalnızca localhost geliştirme kullanımı içindir.</p>
+      <label for="diarization-language">Konuşma dili</label>
+      <select id="diarization-language"><option value="en-US">English (en-US)</option></select>
+      <button id="diarization-start" type="button">Başlat — mikrofon izni iste</button>
+      <button id="diarization-stop" type="button" disabled>Durdur</button>
+      <p id="diarization-status" role="status" aria-live="polite">Dinleme kapalı.</p>
+      <p id="diarization-error" class="error" role="alert" hidden></p>
+      <h3>Geçici metin</h3>
+      <p id="diarization-interim" class="live-interim" aria-live="polite"></p>
+      <h3>Kesinleşmiş konuşmalar</h3>
+      <ol id="diarization-finals" class="live-finals"></ol>
+    </section>
+    </div>
+    <p class="notice">TTS WAV dosyasını indirip STT alanına yükleyebilirsiniz.
+      Biçimler uyumludur; STT'nin 30 saniye ve 1 MiB sınırları geçerlidir.
+      Uzun TTS kayıtlarının tamamı kabul edilmez.</p>
+  </main>
+</body>
+</html>

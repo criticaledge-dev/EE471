@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ImageNet Image Classifier</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="{{ url_for('static', filename='script.js') }}" defer></script>
+</head>
+<body>
+  <main>
+    <h1>ImageNet Image Classifier</h1>
+    <p>ResNet50 predicts three ImageNet classes. This is a general image classifier, not a specialist for all cat breeds. Other images can receive non-cat classes.</p>
+    <form id="classify-form" enctype="multipart/form-data">
+      <label for="image">Choose a JPEG or PNG</label>
+      <input id="image" name="image" type="file" accept="image/jpeg,image/png" required aria-describedby="limits">
+      <p id="limits">Up to 5 MiB, 12 million pixels, and 6000 pixels per side.</p>
+      <img id="preview" alt="Selected image preview" hidden>
+      <button id="classify" type="submit" disabled>Classify</button>
+    </form>
+    <p id="status" role="status" aria-live="polite">Choose an image to begin.</p>
+    <p id="error" role="alert" hidden></p>
+    <section id="result" aria-labelledby="result-title" hidden>
+      <h2 id="result-title">Prediction</h2>
+      <p id="top-class"></p>
+      <ol id="scores"></ol>
+      <p>Scores are model probabilities, not a guarantee. Only the top three classes are shown.</p>
+    </section>
+  </main>
+</body>
+</html>

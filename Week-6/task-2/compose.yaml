@@ -1,0 +1,30 @@
+name: ee471-week6-task2
+services:
+  classifier:
+    image: ee471-week6-classifier:latest
+    pull_policy: never
+    ports:
+      - "127.0.0.1:5064:5000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import json,urllib.request; r=urllib.request.urlopen('http://127.0.0.1:5000/health-check',timeout=3); assert json.load(r)['status']=='READY'"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 10s
+  website:
+    image: ee471-week6-website:latest
+    pull_policy: never
+    build:
+      context: ./website
+    environment:
+      COG_URL: http://classifier:5000
+    ports:
+      - "127.0.0.1:5063:5000"
+    depends_on:
+      classifier:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/healthz',timeout=3)"]
+      interval: 10s
+      timeout: 4s
+      retries: 3
