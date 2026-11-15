@@ -1,0 +1,224 @@
+{
+  "stage": 8,
+  "date": "2026-11-13",
+  "comparison": {
+    "image": "test_00000_label_3_cat.png",
+    "image_sha256": "0d4964922e2463ad0e2b1cd298e03d5627ff7dad1ab1cdd173ce35e9974e204f",
+    "python": {
+      "baseline": {
+        "checkpoint_sha256": "60cc152fb4cf1e10dad8b870e9b3f847c7293e30a363eecba8972b4a5e1cbd7c",
+        "image": "test_00000_label_3_cat.png",
+        "official_test_index": 0,
+        "true_label": 3,
+        "true_class": "cat",
+        "predicted_label": 3,
+        "predicted_class": "cat",
+        "correct": true,
+        "probability": 0.44070398807525635,
+        "logits": [
+          -0.03658721223473549,
+          -2.710747241973877,
+          1.2429356575012207,
+          2.5001611709594727,
+          -0.13635510206222534,
+          1.6103180646896362,
+          0.44663891196250916,
+          -0.6390142440795898,
+          0.940287172794342,
+          -0.8246059417724609
+        ],
+        "top3": {
+          "cat": 0.44070398807525635,
+          "dog": 0.18100601434707642,
+          "bird": 0.12535478174686432
+        },
+        "reference_verified": true
+      },
+      "optimized": {
+        "checkpoint_sha256": "3afe36d66e686617f7a8628b12607e6e25f4c4cc7e218338d018226943ed4c0e",
+        "image": "test_00000_label_3_cat.png",
+        "official_test_index": 0,
+        "true_label": 3,
+        "true_class": "cat",
+        "predicted_label": 3,
+        "predicted_class": "cat",
+        "correct": true,
+        "probability": 0.4304862320423126,
+        "logits": [
+          -1.4875853061676025,
+          -2.7597758769989014,
+          0.5073241591453552,
+          1.769199252128601,
+          -0.22542332112789154,
+          1.1259393692016602,
+          -0.08311790227890015,
+          -0.7046090364456177,
+          -0.9746293425559998,
+          -1.9846715927124023
+        ],
+        "top3": {
+          "cat": 0.4304862320423126,
+          "dog": 0.22625336050987244,
+          "bird": 0.12188039720058441
+        },
+        "reference_verified": true
+      }
+    },
+    "cog": {
+      "baseline": {
+        "class": "cat",
+        "score": 0.44070398807525635,
+        "top3": {
+          "bird": 0.12535478174686432,
+          "cat": 0.44070398807525635,
+          "dog": 0.1810060143470764
+        }
+      },
+      "optimized": {
+        "class": "cat",
+        "score": 0.4304862320423126,
+        "top3": {
+          "bird": 0.1218803972005844,
+          "cat": 0.4304862320423126,
+          "dog": 0.22625336050987244
+        }
+      }
+    },
+    "website": {
+      "baseline": {
+        "output": {
+          "class": "cat",
+          "score": 0.44070398807525635,
+          "top3": {
+            "bird": 0.12535478174686432,
+            "cat": 0.44070398807525635,
+            "dog": 0.1810060143470764
+          }
+        },
+        "status": "succeeded"
+      },
+      "optimized": {
+        "output": {
+          "class": "cat",
+          "score": 0.4304862320423126,
+          "top3": {
+            "bird": 0.1218803972005844,
+            "cat": 0.4304862320423126,
+            "dog": 0.22625336050987244
+          }
+        },
+        "status": "succeeded"
+      }
+    },
+    "scores_match": true,
+    "absolute_tolerance": 1e-07,
+    "offline_image_checks": true,
+    "logs_verified": [
+      "baseline",
+      "optimized"
+    ],
+    "invalid_recovery": true,
+    "real_jpeg_cog_and_website": true,
+    "training_or_dataset_download": false,
+    "real_postman_desktop": false
+  },
+  "browser": {
+    "ok": true,
+    "realBrowser": "Chrome headless",
+    "realModel": true,
+    "realUploadSubmits": 5,
+    "singleServiceFailureRecovery": true,
+    "predictions": {
+      "baseline": {
+        "class": "cat",
+        "score": 0.44070398807525635,
+        "top3": {
+          "bird": 0.12535478174686432,
+          "cat": 0.44070398807525635,
+          "dog": 0.1810060143470764
+        }
+      },
+      "optimized": {
+        "class": "cat",
+        "score": 0.4304862320423126,
+        "top3": {
+          "bird": 0.1218803972005844,
+          "cat": 0.4304862320423126,
+          "dog": 0.22625336050987244
+        }
+      }
+    },
+    "duplicateBlocked": true,
+    "preview": true,
+    "resultsMatchCog": true,
+    "corruptRecovery": true,
+    "missingUpload": true,
+    "narrowViewport": true,
+    "objectUrlsRevoked": 2,
+    "errors": []
+  },
+  "build": {
+    "exit_code": 0,
+    "cog_version": "0.23.1",
+    "both_image_checkpoint_sha256_verified": true,
+    "note": "Cog label/schema step printed no access allowed to dir context; both image exports/build exit 0; offline setup and real HTTP inference verified"
+  },
+  "tests": {
+    "website_mock": 18,
+    "synthetic_core_and_selection": 7,
+    "postman_cli": {
+      "version": "1.85.0",
+      "requests": 2,
+      "assertions": 10,
+      "failed": 0,
+      "exit_code": 0,
+      "cloud_reporting": false,
+      "desktop_used": false
+    }
+  },
+  "initial_docker_engine_unavailable": true,
+  "fashion_initially_stopped_existing_containers_started": true,
+  "fashion_container_ids_and_image_ids_preserved": true,
+  "fashion_home_and_two_ready_checks": true,
+  "preserved_file_hashes": 100,
+  "final_services": [
+    {
+      "status": "Up About a minute (healthy)",
+      "name": "ee471-week7-cifar10-baseline-website-1",
+      "id": "3a0a361e238f"
+    },
+    {
+      "status": "Up 5 minutes (healthy)",
+      "name": "ee471-week7-cifar10-baseline-baseline-1",
+      "id": "16d45afec85a"
+    },
+    {
+      "status": "Up 38 seconds (healthy)",
+      "name": "ee471-week7-cifar10-baseline-optimized-1",
+      "id": "f5db4fd5a840"
+    },
+    {
+      "status": "Up 15 minutes (healthy)",
+      "name": "ee471-week7-fashion-baseline-baseline-1",
+      "id": "156bd173d6b5"
+    },
+    {
+      "status": "Up 15 minutes (healthy)",
+      "name": "ee471-week7-fashion-baseline-optimized-1",
+      "id": "2aee1c626b82"
+    },
+    {
+      "status": "Up 15 minutes (healthy)",
+      "name": "ee471-week7-fashion-baseline-website-1",
+      "id": "582c6f56717a"
+    }
+  ],
+  "training_hpo_or_dataset_download": false,
+  "source_validation": {
+    "utf8_ast_json_whitespace_lf": true,
+    "text_files_checked": 53,
+    "initial_runner_defect_repaired": true,
+    "website_status_encoding_corrected_and_rebuilt": true,
+    "final_real_browser_rerun_passed": true
+  }
+}

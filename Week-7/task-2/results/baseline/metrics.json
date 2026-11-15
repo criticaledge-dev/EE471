@@ -1,0 +1,136 @@
+{
+  "status": "completed",
+  "started_at_utc": "2026-11-09T12:19:17.344536+00:00",
+  "versions": {
+    "python": "3.12.11",
+    "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+    "torch": "2.6.0+cpu",
+    "torchvision": "0.21.0+cpu",
+    "Pillow": "11.1.0",
+    "numpy": "2.3.1"
+  },
+  "config": {
+    "seed": 42,
+    "device": "cpu",
+    "cpu_threads": 2,
+    "num_workers": 0,
+    "epochs": 2,
+    "batch_size": 4,
+    "optimizer": "SGD",
+    "learning_rate": 0.001,
+    "momentum": 0.9,
+    "dampening": 0,
+    "weight_decay": 0,
+    "nesterov": false,
+    "loss": "CrossEntropyLoss",
+    "architecture": "Conv(3,6,5)-ReLU-Pool(2)-Conv(6,16,5)-ReLU-Pool(2)-Flatten-Linear(400,120)-ReLU-Linear(120,84)-ReLU-Linear(84,10)",
+    "transform": "32x32 RGB; ToTensor; mean=(.5,.5,.5), std=(.5,.5,.5); no augmentation/resize"
+  },
+  "classes": [
+    "airplane",
+    "automobile",
+    "bird",
+    "cat",
+    "deer",
+    "dog",
+    "frog",
+    "horse",
+    "ship",
+    "truck"
+  ],
+  "epochs": [
+    {
+      "epoch": 1,
+      "train": {
+        "loss": 1.70882727174494,
+        "accuracy": 0.3675333333333333,
+        "samples": 45000
+      },
+      "validation": {
+        "loss": 1.450156633234024,
+        "accuracy": 0.4698,
+        "samples": 5000
+      },
+      "training_seconds": 15.022237864999624,
+      "validation_seconds": 0.8583016089996818,
+      "seconds": 15.880541059999814
+    },
+    {
+      "epoch": 2,
+      "train": {
+        "loss": 1.3515398891856274,
+        "accuracy": 0.515,
+        "samples": 45000
+      },
+      "validation": {
+        "loss": 1.3335635150909424,
+        "accuracy": 0.5208,
+        "samples": 5000
+      },
+      "training_seconds": 15.673841836000065,
+      "validation_seconds": 0.8249167390004004,
+      "seconds": 16.498759630999302
+    }
+  ],
+  "source_sha256": {
+    "model.py": "43f9b41931236b89c823ec6944b6fef2715f607693cb2a6dcb30ff7c247b2445",
+    "preprocessing.py": "f21c1b9d65d818a2cb390a633d57ce224c11ab39fecae7c7a0b7ed553279f08f",
+    "train.py": "bfd432b4e766702bc1c153c28bd2bdbce9448a8e3eda6411bbefc493a6bd3a4f",
+    "engine.py": "2e76f6ca25fc5ed4df8cc050211c3a218e04116f5a76d27c1969e4724cb83a98",
+    "common.py": "3b0617d3f6857f8a8a84d6cb15c9e3de49b04cfc8768be5f17f42f23a2a17fa3",
+    "evaluate.py": "2cf982d49d90cdbd98e78a5c2d5816aa508783ca6b66ed1848a050e4d54dd0ee",
+    "export_samples.py": "1d5e86108d1386d32ff96e3528942517799123371190ca982673bb3f6cd9d047"
+  },
+  "dataset_classes_verified": [
+    "airplane",
+    "automobile",
+    "bird",
+    "cat",
+    "deer",
+    "dog",
+    "frog",
+    "horse",
+    "ship",
+    "truck"
+  ],
+  "training_data_download_and_load_seconds": 20.37587404900023,
+  "split": {
+    "dataset": "CIFAR10 official training set",
+    "total": 50000,
+    "train": 45000,
+    "validation": 5000,
+    "seed": 42,
+    "method": "torch.randperm with independent torch.Generator.manual_seed(42); first 45000 train, remaining 5000 validation",
+    "train_indices_sha256_le_int64": "0d487a059d661a531157cc68d8e806458ed65a6717f9bcc17c24c8c3cbd178a4",
+    "validation_indices_sha256_le_int64": "444accb2e7d8003f454cc4260c99a21ddd96eaae68ee5b3bb7f5e7882c855e2e",
+    "official_test_used_for_selection": false
+  },
+  "optimizer_defaults": {
+    "lr": 0.001,
+    "momentum": 0.9,
+    "dampening": 0,
+    "weight_decay": 0,
+    "nesterov": false,
+    "maximize": false,
+    "foreach": null,
+    "differentiable": false,
+    "fused": null
+  },
+  "training_seconds": 30.69607970099969,
+  "training_and_validation_seconds": 32.379300690999116,
+  "checkpoint": {
+    "path": "/work/artifacts/baseline/cifar10_last.pth",
+    "bytes": 251454,
+    "sha256": "60cc152fb4cf1e10dad8b870e9b3f847c7293e30a363eecba8972b4a5e1cbd7c",
+    "format": "CPU state_dict only"
+  },
+  "checkpoint_selection": "epoch 2 final checkpoint; no validation/test checkpoint selection",
+  "test": {
+    "loss": 1.333286461931467,
+    "accuracy": 0.5141,
+    "samples": 10000
+  },
+  "final_test_load_and_evaluation_seconds": 3.5437530089993743,
+  "completed_at_utc": "2026-11-09T12:20:14.037638+00:00",
+  "total_seconds_including_data_test_and_export": 56.71063615000003
+}

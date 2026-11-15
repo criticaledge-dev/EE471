@@ -1,0 +1,45 @@
+{
+  "hpo_exit_code": 0,
+  "runtime_image": "ee471-week7-cifar10-baseline:latest; Python entrypoint only",
+  "network": "none",
+  "data_mount": "readonly",
+  "dataset_download": false,
+  "protected_file_hashes_unchanged": 116,
+  "existing_compose_services_unchanged_and_healthy": [
+    {
+      "status": "Up 16 minutes (healthy)",
+      "name": "ee471-week7-cifar10-baseline-website-1",
+      "id": "0e6b37b7efd9"
+    },
+    {
+      "status": "Up 16 minutes (healthy)",
+      "name": "ee471-week7-cifar10-baseline-baseline-1",
+      "id": "4ad277c169bd"
+    },
+    {
+      "status": "Up 58 minutes (healthy)",
+      "name": "ee471-week7-fashion-baseline-baseline-1",
+      "id": "156bd173d6b5"
+    },
+    {
+      "status": "Up 58 minutes (healthy)",
+      "name": "ee471-week7-fashion-baseline-optimized-1",
+      "id": "2aee1c626b82"
+    },
+    {
+      "status": "Up About an hour (healthy)",
+      "name": "ee471-week7-fashion-baseline-website-1",
+      "id": "582c6f56717a"
+    }
+  ],
+  "initial_state_hashes_verified": 4,
+  "observed_epoch_order_hashes_verified": 8,
+  "baseline_trace_note": "reconstructed protocol, not a historical measured trace",
+  "selection_frozen_before_test": true,
+  "only_selected_candidate_tested": true,
+  "separate_process_reload_verified": true,
+  "synthetic_tests_passed": 7,
+  "hpo_source_sha256": "ca2ffe10d69690956f46f45767568f12de848eba8db4d53ed996e8553eb2bb70",
+  "website_cog_build_compose_changed": false,
+  "git_write_operations": false
+}

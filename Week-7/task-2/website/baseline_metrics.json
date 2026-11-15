@@ -1,0 +1,7 @@
+{
+  "loss": 1.333286461931467,
+  "accuracy": 0.5141,
+  "samples": 10000,
+  "checkpoint_sha256": "60cc152fb4cf1e10dad8b870e9b3f847c7293e30a363eecba8972b4a5e1cbd7c",
+  "source": "results/baseline/metrics.json:test"
+}

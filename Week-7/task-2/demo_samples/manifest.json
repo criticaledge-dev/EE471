@@ -1,0 +1,100 @@
+{
+  "dataset": "CIFAR10 official test set",
+  "selection": "first test index per ground-truth class; no predictions used",
+  "classes": [
+    "airplane",
+    "automobile",
+    "bird",
+    "cat",
+    "deer",
+    "dog",
+    "frog",
+    "horse",
+    "ship",
+    "truck"
+  ],
+  "transform": "RGB 32x32; ToTensor; channel mean/std 0.5/0.5; no resize/augmentation",
+  "png_transform_matches_dataset": true,
+  "samples": [
+    {
+      "file": "test_00003_label_0_airplane.png",
+      "official_test_index": 3,
+      "label": 0,
+      "class": "airplane",
+      "sha256": "fce5a6515e44e57d6b4349822f25e2cf941c580c5cc2f5fc637d5743a9057338",
+      "bytes": 2151
+    },
+    {
+      "file": "test_00006_label_1_automobile.png",
+      "official_test_index": 6,
+      "label": 1,
+      "class": "automobile",
+      "sha256": "2362c09b8f26a398daac5f4edc5d04739c8b95b7adddad4e49dd6012d9e8fa1d",
+      "bytes": 2476
+    },
+    {
+      "file": "test_00025_label_2_bird.png",
+      "official_test_index": 25,
+      "label": 2,
+      "class": "bird",
+      "sha256": "7e3f2362c8b957c274baf547a4f52bc9821dcc40b35fd7c9df1236bdb71c7369",
+      "bytes": 2339
+    },
+    {
+      "file": "test_00000_label_3_cat.png",
+      "official_test_index": 0,
+      "label": 3,
+      "class": "cat",
+      "sha256": "0d4964922e2463ad0e2b1cd298e03d5627ff7dad1ab1cdd173ce35e9974e204f",
+      "bytes": 2493
+    },
+    {
+      "file": "test_00022_label_4_deer.png",
+      "official_test_index": 22,
+      "label": 4,
+      "class": "deer",
+      "sha256": "98f25198e889566cd670b5448ec04eead374bb96bab02281d529c6f6d3dd3e47",
+      "bytes": 1945
+    },
+    {
+      "file": "test_00012_label_5_dog.png",
+      "official_test_index": 12,
+      "label": 5,
+      "class": "dog",
+      "sha256": "b80d290cd1eb025112ea752b9877272fedeb7287f7d492e47bd7b31b94637aae",
+      "bytes": 2387
+    },
+    {
+      "file": "test_00004_label_6_frog.png",
+      "official_test_index": 4,
+      "label": 6,
+      "class": "frog",
+      "sha256": "6cfbe4ca868b7da43a30545c2011658082ebf2c63680b221d9adbc9228f31192",
+      "bytes": 2581
+    },
+    {
+      "file": "test_00013_label_7_horse.png",
+      "official_test_index": 13,
+      "label": 7,
+      "class": "horse",
+      "sha256": "3fe4359cdb1453db950f44a70289d4c4f75a4f92e5d822ff88a771769a085f65",
+      "bytes": 2602
+    },
+    {
+      "file": "test_00001_label_8_ship.png",
+      "official_test_index": 1,
+      "label": 8,
+      "class": "ship",
+      "sha256": "eaec54ee1aed958f9548d01aff16c41aeba408885da42759890a538888be879e",
+      "bytes": 2154
+    },
+    {
+      "file": "test_00011_label_9_truck.png",
+      "official_test_index": 11,
+      "label": 9,
+      "class": "truck",
+      "sha256": "a7e6dca0f8fb57a9371015ee5ec609411bcf9f96c85177b5ef280c0d80b3bfe8",
+      "bytes": 2500
+    }
+  ]
+}

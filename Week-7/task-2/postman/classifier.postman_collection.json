@@ -1,0 +1,149 @@
+{
+  "info": {
+    "name": "EE471 Week 7 - CIFAR10 baseline and optimized",
+    "description": "Calls Cog directly, not the website. Generate and import a local environment with make_request.py, then select it. Never share generated image variables. No arbitrary local-file access is attempted in scripts.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseline_url",
+      "value": "http://localhost:5075"
+    },
+    {
+      "key": "optimized_url",
+      "value": "http://localhost:5076"
+    }
+  ],
+  "item": [
+    {
+      "name": "Baseline - same CIFAR10 cat PNG",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{baseline_url}}/predictions",
+        "body": {
+          "mode": "raw",
+          "raw": "{{prediction_body}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Generate a local environment from demo_samples/test_00000_label_3_cat.png with make_request.py, import/select it, then Send. Body is JSON input.image data URL, not multipart."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.request.body.mode === 'raw') {",
+              "  const body = JSON.parse(pm.variables.get('prediction_body') || 'null');",
+              "  if (!body || !/^data:image\\/(jpeg|png);base64,/.test(body.input?.image || '')) throw new Error('Generate/import/select the local image environment first.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP response is 200', () => pm.response.to.have.status(200));",
+              "const result = pm.response.json();",
+              "pm.test('Prediction actually succeeded', () => {",
+              "  pm.expect(result.status).to.eql('succeeded');",
+              "  pm.expect(result.error == null).to.eql(true);",
+              "});",
+              "pm.test('Three real class scores are returned', () => {",
+              "  pm.expect(result.output).to.be.an('object');",
+              "  const entries = Object.entries(result.output.top3);",
+              "  pm.expect(entries.length).to.eql(3);",
+              "  entries.forEach(([label, score]) => {",
+              "    pm.expect(label.length > 0).to.eql(true);",
+              "    pm.expect(typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 1).to.eql(true);",
+              "  });",
+              "});",
+              "pm.test(\"Classes belong to the trained CIFAR10 label set\", () => {",
+              "  const classes = [\"airplane\",\"automobile\",\"bird\",\"cat\",\"deer\",\"dog\",\"frog\",\"horse\",\"ship\",\"truck\"];",
+              "  Object.keys(result.output.top3).forEach(label => pm.expect(classes.includes(label)).to.eql(true));",
+              "});",
+              "pm.test('Top prediction agrees with top three', () => { pm.expect(result.output.score).to.eql(result.output.top3[result.output.class]); pm.expect(result.output.score).to.eql(Math.max(...Object.values(result.output.top3))); });"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Optimized - same CIFAR10 cat PNG",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{optimized_url}}/predictions",
+        "body": {
+          "mode": "raw",
+          "raw": "{{prediction_body}}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "description": "Generate a local environment from demo_samples/test_00000_label_3_cat.png with make_request.py, import/select it, then Send. Body is JSON input.image data URL, not multipart."
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "if (pm.request.body.mode === 'raw') {",
+              "  const body = JSON.parse(pm.variables.get('prediction_body') || 'null');",
+              "  if (!body || !/^data:image\\/(jpeg|png);base64,/.test(body.input?.image || '')) throw new Error('Generate/import/select the local image environment first.');",
+              "}"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP response is 200', () => pm.response.to.have.status(200));",
+              "const result = pm.response.json();",
+              "pm.test('Prediction actually succeeded', () => {",
+              "  pm.expect(result.status).to.eql('succeeded');",
+              "  pm.expect(result.error == null).to.eql(true);",
+              "});",
+              "pm.test('Three real class scores are returned', () => {",
+              "  pm.expect(result.output).to.be.an('object');",
+              "  const entries = Object.entries(result.output.top3);",
+              "  pm.expect(entries.length).to.eql(3);",
+              "  entries.forEach(([label, score]) => {",
+              "    pm.expect(label.length > 0).to.eql(true);",
+              "    pm.expect(typeof score === 'number' && Number.isFinite(score) && score >= 0 && score <= 1).to.eql(true);",
+              "  });",
+              "});",
+              "pm.test(\"Classes belong to the trained CIFAR10 label set\", () => {",
+              "  const classes = [\"airplane\",\"automobile\",\"bird\",\"cat\",\"deer\",\"dog\",\"frog\",\"horse\",\"ship\",\"truck\"];",
+              "  Object.keys(result.output.top3).forEach(label => pm.expect(classes.includes(label)).to.eql(true));",
+              "});",
+              "pm.test('Top prediction agrees with top three', () => { pm.expect(result.output.score).to.eql(result.output.top3[result.output.class]); pm.expect(result.output.score).to.eql(Math.max(...Object.values(result.output.top3))); });"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

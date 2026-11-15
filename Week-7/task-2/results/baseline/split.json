@@ -1,0 +1,11 @@
+{
+  "dataset": "CIFAR10 official training set",
+  "total": 50000,
+  "train": 45000,
+  "validation": 5000,
+  "seed": 42,
+  "method": "torch.randperm with independent torch.Generator.manual_seed(42); first 45000 train, remaining 5000 validation",
+  "train_indices_sha256_le_int64": "0d487a059d661a531157cc68d8e806458ed65a6717f9bcc17c24c8c3cbd178a4",
+  "validation_indices_sha256_le_int64": "444accb2e7d8003f454cc4260c99a21ddd96eaae68ee5b3bb7f5e7882c855e2e",
+  "official_test_used_for_selection": false
+}

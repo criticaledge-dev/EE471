@@ -1,0 +1,138 @@
+{
+  "stage": 6,
+  "date": "2026-11-09",
+  "comparison": {
+    "image": "test_00000_label_3_cat.png",
+    "image_sha256": "0d4964922e2463ad0e2b1cd298e03d5627ff7dad1ab1cdd173ce35e9974e204f",
+    "checkpoint_sha256": "60cc152fb4cf1e10dad8b870e9b3f847c7293e30a363eecba8972b4a5e1cbd7c",
+    "python": {
+      "checkpoint_sha256": "60cc152fb4cf1e10dad8b870e9b3f847c7293e30a363eecba8972b4a5e1cbd7c",
+      "image": "test_00000_label_3_cat.png",
+      "official_test_index": 0,
+      "true_label": 3,
+      "true_class": "cat",
+      "predicted_label": 3,
+      "predicted_class": "cat",
+      "correct": true,
+      "probability": 0.44070398807525635,
+      "logits": [
+        -0.03658721223473549,
+        -2.710747241973877,
+        1.2429356575012207,
+        2.5001611709594727,
+        -0.13635510206222534,
+        1.6103180646896362,
+        0.44663891196250916,
+        -0.6390142440795898,
+        0.940287172794342,
+        -0.8246059417724609
+      ],
+      "top3": {
+        "cat": 0.44070398807525635,
+        "dog": 0.18100601434707642,
+        "bird": 0.12535478174686432
+      },
+      "reference_verified": true
+    },
+    "cog": {
+      "class": "cat",
+      "score": 0.44070398807525635,
+      "top3": {
+        "bird": 0.12535478174686432,
+        "cat": 0.44070398807525635,
+        "dog": 0.1810060143470764
+      }
+    },
+    "website": {
+      "class": "cat",
+      "score": 0.44070398807525635,
+      "top3": {
+        "bird": 0.12535478174686432,
+        "cat": 0.44070398807525635,
+        "dog": 0.1810060143470764
+      }
+    },
+    "scores_match": true,
+    "absolute_tolerance": 1e-07,
+    "offline_image_checks": true,
+    "invalid_recovery": true,
+    "log_verified": true,
+    "real_postman_desktop": false,
+    "training_or_dataset_downloads": false,
+    "real_jpeg_cog_and_website": true
+  },
+  "browser": {
+    "ok": true,
+    "realBrowser": "Chrome headless",
+    "realModel": true,
+    "realUploadSubmits": 3,
+    "predictions": {
+      "baseline": {
+        "class": "cat",
+        "score": 0.44070398807525635,
+        "top3": {
+          "bird": 0.12535478174686432,
+          "cat": 0.44070398807525635,
+          "dog": 0.1810060143470764
+        }
+      }
+    },
+    "duplicateBlocked": true,
+    "preview": true,
+    "resultsMatchCog": true,
+    "corruptRecovery": true,
+    "missingUpload": true,
+    "narrowViewport": true,
+    "objectUrlsRevoked": 2,
+    "errors": []
+  },
+  "build": {
+    "exit_code": 0,
+    "image_checkpoint_sha256_verified": true,
+    "cog_version": "0.23.1",
+    "note": "Cog label/schema stage printed no access allowed to dir context; image export and build exit 0, offline setup and real HTTP checks passed"
+  },
+  "tests": {
+    "website_mock": 17,
+    "synthetic_core": 4,
+    "postman_cli": {
+      "requests": 1,
+      "assertions": 5,
+      "failed": 0,
+      "exit_code": 0,
+      "no_report_events": true,
+      "desktop_used": false
+    }
+  },
+  "protected_files_unchanged": 85,
+  "fashion_images_unchanged": true,
+  "fashion_home_and_two_ready_checks": true,
+  "services": [
+    {
+      "status": "Up About a minute (healthy)",
+      "name": "ee471-week7-cifar10-baseline-website-1",
+      "id": "0e6b37b7efd9"
+    },
+    {
+      "status": "Up About a minute (healthy)",
+      "name": "ee471-week7-cifar10-baseline-baseline-1",
+      "id": "4ad277c169bd"
+    },
+    {
+      "status": "Up 43 minutes (healthy)",
+      "name": "ee471-week7-fashion-baseline-baseline-1",
+      "id": "156bd173d6b5"
+    },
+    {
+      "status": "Up 43 minutes (healthy)",
+      "name": "ee471-week7-fashion-baseline-optimized-1",
+      "id": "2aee1c626b82"
+    },
+    {
+      "status": "Up 52 minutes (healthy)",
+      "name": "ee471-week7-fashion-baseline-website-1",
+      "id": "582c6f56717a"
+    }
+  ],
+  "retraining_dataset_download_hpo": false
+}

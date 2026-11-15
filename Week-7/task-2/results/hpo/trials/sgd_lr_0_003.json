@@ -1,0 +1,73 @@
+{
+  "id": "sgd_lr_0_003",
+  "optimizer": "SGD",
+  "learning_rate": 0.003,
+  "optimizer_defaults": {
+    "lr": 0.003,
+    "momentum": 0.9,
+    "dampening": 0,
+    "weight_decay": 0,
+    "nesterov": false,
+    "maximize": false,
+    "foreach": null,
+    "differentiable": false,
+    "fused": null
+  },
+  "initial_state_sha256": "21793f0b995b6a48da344659f2c15fb979c6b297b74ece4e7afee3692314f65d",
+  "epochs": [
+    {
+      "epoch": 1,
+      "train": {
+        "loss": 1.6641149085852835,
+        "accuracy": 0.3923333333333333,
+        "samples": 45000
+      },
+      "validation": {
+        "loss": 1.5118006074011325,
+        "accuracy": 0.4546,
+        "samples": 5000
+      },
+      "seconds": 17.871314472999984,
+      "observed_batch_order_sha256": "d761e4749122ecb6e3f93de31d9c31d9dfca6b39dbc22d874eba553004c67da8"
+    },
+    {
+      "epoch": 2,
+      "train": {
+        "loss": 1.4227203485985598,
+        "accuracy": 0.48788888888888887,
+        "samples": 45000
+      },
+      "validation": {
+        "loss": 1.5149851095914841,
+        "accuracy": 0.4652,
+        "samples": 5000
+      },
+      "seconds": 17.327185163999275,
+      "observed_batch_order_sha256": "b9e31d7a3e817d64f3a16683cf7cbe7cb7f50628ee053b58821d336a48169cf0"
+    }
+  ],
+  "test": null,
+  "status": "completed",
+  "training_and_validation_seconds": 35.19849963699926,
+  "elapsed_seconds_before_checkpoint": 35.21327609400032,
+  "last_epoch": {
+    "epoch": 2,
+    "train": {
+      "loss": 1.4227203485985598,
+      "accuracy": 0.48788888888888887,
+      "samples": 45000
+    },
+    "validation": {
+      "loss": 1.5149851095914841,
+      "accuracy": 0.4652,
+      "samples": 5000
+    },
+    "seconds": 17.327185163999275,
+    "observed_batch_order_sha256": "b9e31d7a3e817d64f3a16683cf7cbe7cb7f50628ee053b58821d336a48169cf0"
+  },
+  "checkpoint": {
+    "path": "/work/artifacts/hpo/sgd_lr_0_003_last.pth",
+    "bytes": 251524,
+    "sha256": "18674ff894254b0f14dab134185216a6d04c7576f7baa2f78f4c09577f870807"
+  }
+}

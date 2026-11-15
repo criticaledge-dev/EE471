@@ -1,0 +1,17 @@
+{
+  "device": "cpu",
+  "versions": {
+    "python": "3.12.11",
+    "platform": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.41",
+    "torch": "2.6.0+cpu",
+    "torchvision": "0.21.0+cpu",
+    "Pillow": "11.1.0",
+    "numpy": "2.3.1"
+  },
+  "checkpoint_sha256": "60cc152fb4cf1e10dad8b870e9b3f847c7293e30a363eecba8972b4a5e1cbd7c",
+  "test": {
+    "loss": 1.333286461931467,
+    "accuracy": 0.5141,
+    "samples": 10000
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "predicted_label": 9,
+  "predicted_class": "Ankle boot",
+  "probability": 0.9907208681106567,
+  "image": "test_00000_label_9_ankle_boot.png",
+  "checkpoint_sha256": "2b86c814881244614eff20f10a37c2b87a5dceb959d129000e136833016a3409",
+  "reference_verified": true,
+  "true_label": 9,
+  "true_class": "Ankle boot"
+}

@@ -1,0 +1,130 @@
+{
+  "stage": 4,
+  "date": "2026-11-09",
+  "comparison": {
+    "image": "test_00000_label_9_ankle_boot.png",
+    "image_sha256": "cc22f44180c393601df7c2b9e5946b59e431ea747aff0d7bc223f8896a71548e",
+    "python": {
+      "baseline": {
+        "image": "test_00000_label_9_ankle_boot.png",
+        "true_label": 9,
+        "true_class": "Ankle boot",
+        "checkpoint_sha256": "17f629876a1f204cf7bc10d50e0b362c2a2eb12d09fd2cd527f596bb5702e7b2",
+        "output": {
+          "Ankle boot": 0.3658556640148163,
+          "Sneaker": 0.26088428497314453,
+          "Sandal": 0.18198947608470917
+        }
+      },
+      "optimized": {
+        "image": "test_00000_label_9_ankle_boot.png",
+        "true_label": 9,
+        "true_class": "Ankle boot",
+        "checkpoint_sha256": "2b86c814881244614eff20f10a37c2b87a5dceb959d129000e136833016a3409",
+        "output": {
+          "Ankle boot": 0.9907208681106567,
+          "Sneaker": 0.007302166894078255,
+          "Sandal": 0.0019707477185875177
+        }
+      }
+    },
+    "cog": {
+      "baseline": {
+        "Ankle boot": 0.3658556640148163,
+        "Sandal": 0.18198947608470917,
+        "Sneaker": 0.26088428497314453
+      },
+      "optimized": {
+        "Ankle boot": 0.9907208681106568,
+        "Sandal": 0.0019707477185875177,
+        "Sneaker": 0.007302166894078255
+      }
+    },
+    "website": {
+      "baseline": {
+        "output": {
+          "Ankle boot": 0.3658556640148163,
+          "Sandal": 0.18198947608470917,
+          "Sneaker": 0.26088428497314453
+        },
+        "status": "succeeded"
+      },
+      "optimized": {
+        "output": {
+          "Ankle boot": 0.9907208681106568,
+          "Sandal": 0.0019707477185875177,
+          "Sneaker": 0.007302166894078255
+        },
+        "status": "succeeded"
+      }
+    },
+    "scores_match": true,
+    "absolute_tolerance": 1e-07,
+    "image_hashes_verified": true,
+    "offline_cpu_setup": true,
+    "logs_verified": [
+      "baseline",
+      "optimized"
+    ],
+    "invalid_upload_recovery": true,
+    "week6_unchanged": true,
+    "retraining": false,
+    "real_postman_desktop": false
+  },
+  "browser": {
+    "ok": true,
+    "realBrowser": "Chrome headless",
+    "realModel": true,
+    "realUploadSubmits": 5,
+    "singleServiceFailureRecovery": true,
+    "predictions": {
+      "baseline": {
+        "Ankle boot": 0.3658556640148163,
+        "Sandal": 0.18198947608470917,
+        "Sneaker": 0.26088428497314453
+      },
+      "optimized": {
+        "Ankle boot": 0.9907208681106568,
+        "Sandal": 0.0019707477185875177,
+        "Sneaker": 0.007302166894078255
+      }
+    },
+    "duplicateBlocked": true,
+    "preview": true,
+    "resultsMatchCog": true,
+    "corruptRecovery": true,
+    "missingUpload": true,
+    "narrowViewport": true,
+    "objectUrlsRevoked": 2,
+    "errors": []
+  },
+  "tests": {
+    "website_mock": 16,
+    "core_and_selection_synthetic": 7,
+    "postman_cli": {
+      "version": "1.85.0",
+      "requests": 2,
+      "assertions": 8,
+      "failed": 0,
+      "exit_code": 0,
+      "cloud_reporting": false,
+      "desktop_application_used": false
+    }
+  },
+  "build": {
+    "exit_code": 0,
+    "both_image_checkpoint_sha256_verified": true,
+    "cog_version": "0.23.1",
+    "note": "Cog label/schema build printed no access allowed to dir context, but continued to export both images and exited 0. Offline setup, image hashes and real HTTP inference passed.",
+    "repeat_build_verified": true,
+    "cog_generated_metadata_excluded": true
+  },
+  "final_services": {
+    "website": "healthy:5071",
+    "baseline": "healthy:5072",
+    "optimized": "healthy:5073"
+  },
+  "training_or_hpo_performed": false,
+  "preserved_checkpoint_and_measurement_files": 16,
+  "original_training_source_hashes_unchanged": 6
+}

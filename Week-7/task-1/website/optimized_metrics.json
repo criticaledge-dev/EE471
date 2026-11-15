@@ -1,0 +1,7 @@
+{
+  "loss": 0.34845930209159853,
+  "accuracy": 0.8734,
+  "samples": 10000,
+  "checkpoint_sha256": "2b86c814881244614eff20f10a37c2b87a5dceb959d129000e136833016a3409",
+  "source": "results/hpo/summary.json#winner_test"
+}

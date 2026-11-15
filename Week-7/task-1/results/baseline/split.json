@@ -1,0 +1,11 @@
+{
+  "dataset": "FashionMNIST official training set",
+  "total": 60000,
+  "train": 54000,
+  "validation": 6000,
+  "seed": 42,
+  "method": "torch.randperm with independent seeded generator; first 90% train",
+  "train_indices_sha256_le_int64": "c485001e12d02300cb3dc8ed5f639f82684102ed59103f4160365219dc89fa8f",
+  "validation_indices_sha256_le_int64": "3d897a81a1c38a3ed2d65d583107191f7e02e909979226308044375364914248",
+  "official_test_used_for_selection": false
+}

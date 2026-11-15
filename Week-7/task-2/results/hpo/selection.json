@@ -1,0 +1,53 @@
+{
+  "validation_ranking": [
+    "adam_lr_0_0003",
+    "adam_lr_0_001",
+    "sgd_lr_0_003",
+    "sgd_lr_0_01"
+  ],
+  "baseline_validation": {
+    "loss": 1.3335635150909424,
+    "accuracy": 0.5208,
+    "samples": 5000
+  },
+  "validation_gain_vs_baseline_percentage_points": 1.2399999999999967,
+  "winner": "adam_lr_0_0003",
+  "optimizer": "Adam",
+  "learning_rate": 0.0003,
+  "optimizer_defaults": {
+    "lr": 0.0003,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0,
+    "amsgrad": false,
+    "maximize": false,
+    "foreach": null,
+    "capturable": false,
+    "differentiable": false,
+    "fused": null
+  },
+  "eligible_trials": [
+    "sgd_lr_0_003",
+    "sgd_lr_0_01",
+    "adam_lr_0_0003",
+    "adam_lr_0_001"
+  ],
+  "criterion": "highest epoch-2 validation accuracy; ties: lower epoch-2 validation loss; exact ties: listed order",
+  "validation": {
+    "loss": 1.2947612596273421,
+    "accuracy": 0.5332,
+    "samples": 5000
+  },
+  "frozen_at_utc": "2026-11-09T12:53:08.257073+00:00",
+  "test_used_for_selection": false,
+  "demo_used_for_selection": false,
+  "optimized_checkpoint": {
+    "path": "/work/artifacts/optimized/cifar10_optimized.pth",
+    "sha256": "3afe36d66e686617f7a8628b12607e6e25f4c4cc7e218338d018226943ed4c0e",
+    "bytes": 251552,
+    "format": "CPU state_dict only"
+  }
+}

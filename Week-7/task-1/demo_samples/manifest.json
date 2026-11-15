@@ -1,0 +1,137 @@
+{
+  "dataset": "FashionMNIST official test",
+  "selection": "first occurrence of each ground-truth class; no prediction filtering",
+  "samples": [
+    {
+      "file": "test_00019_label_0_t_shirt_top.png",
+      "official_test_index": 19,
+      "label": 0,
+      "class": "T-shirt/top",
+      "mode": "L",
+      "size": [
+        28,
+        28
+      ],
+      "bytes": 540,
+      "sha256": "1add0501d1c3763f63baec809778e1c67142418118dac382328e6f99dc39fa30"
+    },
+    {
+      "file": "test_00002_label_1_trouser.png",
+      "official_test_index": 2,
+      "label": 1,
+      "class": "Trouser",
+      "mode": "L",
+      "size": [
+        28,
+        28
+      ],
+      "bytes": 391,
+      "sha256": "d66e39bd3a44f2c0e1fe825a089334f54862de9a29aa14feadd12069d4b49810"
+    },
+    {
+      "file": "test_00001_label_2_pullover.png",
+      "official_test_index": 1,
+      "label": 2,
+      "class": "Pullover",
+      "mode": "L",
+      "size": [
+        28,
+        28
+      ],
+      "bytes": 582,
+      "sha256": "2df1817f8cd941cdcf918412bf7c7daa1b494a8473aad9f42f17244a903f7208"
+    },
+    {
+      "file": "test_00013_label_3_dress.png",
+      "official_test_index": 13,
+      "label": 3,
+      "class": "Dress",
+      "mode": "L",
+      "size": [
+        28,
+        28
+      ],
+      "bytes": 369,
+      "sha256": "8cef78fd3b0477894ffc1b3a289a2d681a73c1a2407a89fafabef92d1fae129b"
+    },
+    {
+      "file": "test_00006_label_4_coat.png",
+      "official_test_index": 6,
+      "label": 4,
+      "class": "Coat",
+      "mode": "L",
+      "size": [
+        28,
+        28
+      ],
+      "bytes": 542,
+      "sha256": "49d207a3c89c50aba8081df46c9079e3c0456695f95f08aeb9900c9923451a6e"
+    },
+    {
+      "file": "test_00008_label_5_sandal.png",
+      "official_test_index": 8,
+      "label": 5,
+      "class": "Sandal",
+      "mode": "L",
+      "size": [
+        28,
+        28
+      ],
+      "bytes": 224,
+      "sha256": "e8d2fe3c6ec5e7f0c74b0f84b3c6f041f65037ce1320e64a56135cb4e73c4e18"
+    },
+    {
+      "file": "test_00004_label_6_shirt.png",
+      "official_test_index": 4,
+      "label": 6,
+      "class": "Shirt",
+      "mode": "L",
+      "size": [
+        28,
+        28
+      ],
+      "bytes": 635,
+      "sha256": "44b99883d220542fab7aafddcbfb67482c4830bd6e496bcb615eb69d71e3d6ed"
+    },
+    {
+      "file": "test_00009_label_7_sneaker.png",
+      "official_test_index": 9,
+      "label": 7,
+      "class": "Sneaker",
+      "mode": "L",
+      "size": [
+        28,
+        28
+      ],
+      "bytes": 381,
+      "sha256": "7748b55e5aba8c73f8345d676b536da8690196b727283344c2506cf9109e2a55"
+    },
+    {
+      "file": "test_00018_label_8_bag.png",
+      "official_test_index": 18,
+      "label": 8,
+      "class": "Bag",
+      "mode": "L",
+      "size": [
+        28,
+        28
+      ],
+      "bytes": 448,
+      "sha256": "d1cb535c544652bb98b8d01d25300a6de6750821d6c60601be0f3633ad7cdf20"
+    },
+    {
+      "file": "test_00000_label_9_ankle_boot.png",
+      "official_test_index": 0,
+      "label": 9,
+      "class": "Ankle boot",
+      "mode": "L",
+      "size": [
+        28,
+        28
+      ],
+      "bytes": 394,
+      "sha256": "cc22f44180c393601df7c2b9e5946b59e431ea747aff0d7bc223f8896a71548e"
+    }
+  ],
+  "total_png_bytes": 4506
+}

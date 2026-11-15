@@ -1,0 +1,29 @@
+{
+  "checkpoint_sha256": "60cc152fb4cf1e10dad8b870e9b3f847c7293e30a363eecba8972b4a5e1cbd7c",
+  "image": "test_00000_label_3_cat.png",
+  "official_test_index": 0,
+  "true_label": 3,
+  "true_class": "cat",
+  "predicted_label": 3,
+  "predicted_class": "cat",
+  "correct": true,
+  "probability": 0.44070398807525635,
+  "logits": [
+    -0.03658721223473549,
+    -2.710747241973877,
+    1.2429356575012207,
+    2.5001611709594727,
+    -0.13635510206222534,
+    1.6103180646896362,
+    0.44663891196250916,
+    -0.6390142440795898,
+    0.940287172794342,
+    -0.8246059417724609
+  ],
+  "top3": {
+    "cat": 0.44070398807525635,
+    "dog": 0.18100601434707642,
+    "bird": 0.12535478174686432
+  },
+  "reference_verified": true
+}

@@ -1,0 +1,73 @@
+{
+  "id": "sgd_lr_0_01",
+  "optimizer": "SGD",
+  "learning_rate": 0.01,
+  "optimizer_defaults": {
+    "lr": 0.01,
+    "momentum": 0.9,
+    "dampening": 0,
+    "weight_decay": 0,
+    "nesterov": false,
+    "maximize": false,
+    "foreach": null,
+    "differentiable": false,
+    "fused": null
+  },
+  "initial_state_sha256": "21793f0b995b6a48da344659f2c15fb979c6b297b74ece4e7afee3692314f65d",
+  "epochs": [
+    {
+      "epoch": 1,
+      "train": {
+        "loss": 1.9999430940998926,
+        "accuracy": 0.259,
+        "samples": 45000
+      },
+      "validation": {
+        "loss": 2.016611107492447,
+        "accuracy": 0.2418,
+        "samples": 5000
+      },
+      "seconds": 17.628966598999796,
+      "observed_batch_order_sha256": "d761e4749122ecb6e3f93de31d9c31d9dfca6b39dbc22d874eba553004c67da8"
+    },
+    {
+      "epoch": 2,
+      "train": {
+        "loss": 2.0270293732007345,
+        "accuracy": 0.24697777777777777,
+        "samples": 45000
+      },
+      "validation": {
+        "loss": 1.9508716754913331,
+        "accuracy": 0.2786,
+        "samples": 5000
+      },
+      "seconds": 18.723384882000573,
+      "observed_batch_order_sha256": "b9e31d7a3e817d64f3a16683cf7cbe7cb7f50628ee053b58821d336a48169cf0"
+    }
+  ],
+  "test": null,
+  "status": "completed",
+  "training_and_validation_seconds": 36.35235148100037,
+  "elapsed_seconds_before_checkpoint": 36.36811914000009,
+  "last_epoch": {
+    "epoch": 2,
+    "train": {
+      "loss": 2.0270293732007345,
+      "accuracy": 0.24697777777777777,
+      "samples": 45000
+    },
+    "validation": {
+      "loss": 1.9508716754913331,
+      "accuracy": 0.2786,
+      "samples": 5000
+    },
+    "seconds": 18.723384882000573,
+    "observed_batch_order_sha256": "b9e31d7a3e817d64f3a16683cf7cbe7cb7f50628ee053b58821d336a48169cf0"
+  },
+  "checkpoint": {
+    "path": "/work/artifacts/hpo/sgd_lr_0_01_last.pth",
+    "bytes": 251510,
+    "sha256": "6696ca7168dc36261138367fc2d1dbed375c706ab618f0aff2e49ba82e60c76d"
+  }
+}

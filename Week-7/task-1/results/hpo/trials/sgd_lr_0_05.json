@@ -1,0 +1,117 @@
+{
+  "id": "sgd_lr_0_05",
+  "optimizer": "SGD",
+  "learning_rate": 0.05,
+  "optimizer_defaults": {
+    "lr": 0.05,
+    "momentum": 0,
+    "dampening": 0,
+    "weight_decay": 0,
+    "nesterov": false,
+    "maximize": false,
+    "foreach": null,
+    "differentiable": false,
+    "fused": null
+  },
+  "initial_state_sha256": "c0bb0bab569cd1552a2b8a627eb731d133c079508429d97da481b7562627a5a6",
+  "epochs": [
+    {
+      "epoch": 1,
+      "train": {
+        "loss": 0.7856983456258421,
+        "accuracy": 0.7318888888888889,
+        "samples": 54000
+      },
+      "validation": {
+        "loss": 0.5321149338881175,
+        "accuracy": 0.8153333333333334,
+        "samples": 6000
+      },
+      "seconds": 2.8041305140000077,
+      "observed_batch_order_sha256": "925fcdaf68dafe2efa9d464732a4781a061565edcd02498f41c2077315531d6e"
+    },
+    {
+      "epoch": 2,
+      "train": {
+        "loss": 0.4824321520151915,
+        "accuracy": 0.8277592592592593,
+        "samples": 54000
+      },
+      "validation": {
+        "loss": 0.48404410099983214,
+        "accuracy": 0.8208333333333333,
+        "samples": 6000
+      },
+      "seconds": 2.885524587999953,
+      "observed_batch_order_sha256": "76ac2caf6692c8557da82314467814bfe9539b08cddd54cb50974fbab29c2fd7"
+    },
+    {
+      "epoch": 3,
+      "train": {
+        "loss": 0.42704496427818583,
+        "accuracy": 0.8475185185185186,
+        "samples": 54000
+      },
+      "validation": {
+        "loss": 0.5454111607869466,
+        "accuracy": 0.7838333333333334,
+        "samples": 6000
+      },
+      "seconds": 2.7060146580001856,
+      "observed_batch_order_sha256": "4975b3d9e18f3f093c90f81b07cbd6cd592991c2da0dbba5cce601c187a3c5ee"
+    },
+    {
+      "epoch": 4,
+      "train": {
+        "loss": 0.3931793548266093,
+        "accuracy": 0.858537037037037,
+        "samples": 54000
+      },
+      "validation": {
+        "loss": 0.38663078188896177,
+        "accuracy": 0.8608333333333333,
+        "samples": 6000
+      },
+      "seconds": 2.9219043309999506,
+      "observed_batch_order_sha256": "42fb0f42aab38ee28edbc4c909bfe9aa5b649f1433dc05d815f5ba54658d8a61"
+    },
+    {
+      "epoch": 5,
+      "train": {
+        "loss": 0.36897576207584803,
+        "accuracy": 0.8672037037037037,
+        "samples": 54000
+      },
+      "validation": {
+        "loss": 0.3758049533367157,
+        "accuracy": 0.8683333333333333,
+        "samples": 6000
+      },
+      "seconds": 3.028906559999996,
+      "observed_batch_order_sha256": "acd67243079c01e14e580fefef285bfee2d9eec930125f1a4811f402b2b1b09f"
+    }
+  ],
+  "test": null,
+  "status": "completed",
+  "training_and_validation_seconds": 14.420142122000016,
+  "last_epoch": {
+    "epoch": 5,
+    "train": {
+      "loss": 0.36897576207584803,
+      "accuracy": 0.8672037037037037,
+      "samples": 54000
+    },
+    "validation": {
+      "loss": 0.3758049533367157,
+      "accuracy": 0.8683333333333333,
+      "samples": 6000
+    },
+    "seconds": 3.028906559999996,
+    "observed_batch_order_sha256": "acd67243079c01e14e580fefef285bfee2d9eec930125f1a4811f402b2b1b09f"
+  },
+  "checkpoint": {
+    "path": "/work/task-1/artifacts/hpo/sgd_lr_0_05_last.pth",
+    "bytes": 2681442,
+    "sha256": "f62d9a9904255c8f2798b4297acb0092702b69893aef9964f62995937d189e39"
+  }
+}

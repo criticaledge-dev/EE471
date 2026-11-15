@@ -1,0 +1,11 @@
+# Build context is task-1: import the ORIGINAL model/transform and local weights.
+# Git ignore rules do not determine Docker context; whitelist the checkpoint.
+*
+!cog.yaml
+!requirements.txt
+!cog_runner.py
+!model.py
+!preprocessing.py
+!artifacts/
+!artifacts/baseline/
+!artifacts/baseline/fashion_mnist_last.pth

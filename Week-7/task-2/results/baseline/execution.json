@@ -1,0 +1,51 @@
+{
+  "runtime_image": "ee471-week7-fashion-baseline:latest; Python entrypoint only, no Cog server/build",
+  "full_training_exit_code": 0,
+  "initial_download_attempt_stopped_before_any_epoch": true,
+  "initial_download_attempt_exit_code": 137,
+  "download_preparation": {
+    "initial_download_started_at_utc": "2026-11-09T12:04:08.282784+00:00",
+    "cache_installed_at_utc": "2026-11-09T12:19:15.115944+00:00",
+    "initial_attempt_epochs": 0,
+    "download": {
+      "source": "https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz",
+      "bytes": 170498071,
+      "md5": "c58f30108f718f92721af3b95e74349a",
+      "parallel_connections": 4,
+      "seconds": 464.8707677900002
+    },
+    "initial_parallel_attempt": {
+      "connections": 8,
+      "outcome": "TLS handshake timeout; completed parts preserved"
+    },
+    "completed_parallel_attempt": {
+      "connections": 4,
+      "checksum_verified": true
+    }
+  },
+  "end_to_end_seconds_including_download": 965.754854,
+  "timing_scope": "first download-only train.py start to full training/test/export completion; includes orchestration/preparation; excludes subsequent independent evaluation/reload",
+  "cached_training_script_seconds": 56.71063615000003,
+  "independent_test_exactly_matches": true,
+  "separate_process_png_reload_verified": true,
+  "synthetic_unit_tests_passed": 4,
+  "fashion_files_hashes_unchanged": 67,
+  "fashion_services_unchanged_and_healthy": [
+    {
+      "status": "Up 25 minutes (healthy)",
+      "name": "ee471-week7-fashion-baseline-baseline-1",
+      "id": "156bd173d6b5"
+    },
+    {
+      "status": "Up 25 minutes (healthy)",
+      "name": "ee471-week7-fashion-baseline-optimized-1",
+      "id": "2aee1c626b82"
+    },
+    {
+      "status": "Up 34 minutes (healthy)",
+      "name": "ee471-week7-fashion-baseline-website-1",
+      "id": "582c6f56717a"
+    }
+  ],
+  "no_hpo_cog_build_website_or_git_writes": true
+}

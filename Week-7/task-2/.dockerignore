@@ -1,0 +1,9 @@
+*
+!cog.yaml
+!requirements.txt
+!cog_runner.py
+!model.py
+!preprocessing.py
+!artifacts/
+!artifacts/baseline/
+!artifacts/baseline/cifar10_last.pth

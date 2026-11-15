@@ -1,0 +1,41 @@
+{
+  "winner": "adam_lr_0_001",
+  "optimizer": "Adam",
+  "learning_rate": 0.001,
+  "optimizer_defaults": {
+    "lr": 0.001,
+    "betas": [
+      0.9,
+      0.999
+    ],
+    "eps": 1e-08,
+    "weight_decay": 0,
+    "amsgrad": false,
+    "maximize": false,
+    "foreach": null,
+    "capturable": false,
+    "differentiable": false,
+    "fused": null
+  },
+  "eligible_trials": [
+    "sgd_lr_0_01",
+    "sgd_lr_0_05",
+    "adam_lr_0_0003",
+    "adam_lr_0_001"
+  ],
+  "criterion": "highest epoch-5 validation accuracy; ties: lower epoch-5 validation loss; exact ties: listed order",
+  "validation": {
+    "loss": 0.33035085638364153,
+    "accuracy": 0.881,
+    "samples": 6000
+  },
+  "frozen_at_utc": "2026-11-09T11:29:04.011284+00:00",
+  "test_used_for_selection": false,
+  "demo_used_for_selection": false,
+  "optimized_checkpoint": {
+    "path": "/work/task-1/artifacts/optimized/fashion_mnist_optimized.pth",
+    "sha256": "2b86c814881244614eff20f10a37c2b87a5dceb959d129000e136833016a3409",
+    "bytes": 2681462,
+    "format": "CPU state_dict only"
+  }
+}
