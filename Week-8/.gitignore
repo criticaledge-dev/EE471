@@ -1,0 +1,9 @@
+.venv/
+.native/
+.env
+__pycache__/
+*.py[cod]
+models/
+outputs/
+/task-1/output/
+samples/

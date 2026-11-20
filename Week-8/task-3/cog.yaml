@@ -1,0 +1,12 @@
+image: ee471-week8-face-direction
+build:
+  gpu: false
+  python_version: "3.12.11"
+  sdk_version: "0.23.1"
+  python_requirements: requirements.txt
+  system_packages:
+    - libgl1
+    - libegl1
+    - libgles2
+    - libglib2.0-0
+run: "run.py:Runner"

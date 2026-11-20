@@ -1,0 +1,122 @@
+{
+  "language_detector": {
+    "url": "https://storage.googleapis.com/mediapipe-models/language_detector/language_detector/float32/1/language_detector.tflite",
+    "path": "models/language_detector.tflite",
+    "bytes": 315294,
+    "sha256": "7db4f23dfe1ad8966b050b419a865da451143fd43eb6b606a256aadeeb1e5417"
+  },
+  "text_classifier": {
+    "url": "https://storage.googleapis.com/mediapipe-models/text_classifier/average_word_classifier/float32/latest/average_word_classifier.tflite",
+    "path": "models/average_word_classifier.tflite",
+    "bytes": 775706,
+    "sha256": "13bf6f7f35964f1e85d6cc762ee7b1952009b532b233baa5bdb4bf7441097f34"
+  },
+  "text_embedder": {
+    "url": "https://storage.googleapis.com/mediapipe-models/text_embedder/universal_sentence_encoder/float32/latest/universal_sentence_encoder.tflite",
+    "path": "models/universal_sentence_encoder.tflite",
+    "bytes": 6120274,
+    "sha256": "89ad3c74175dd8caa398cc22b657296d94302d20c525c12b58b29420f7249749"
+  },
+  "text_proofreader": {
+    "url": "https://storage.googleapis.com/mediapipe-models/text_proofreader/200m/latest/proofread_quant_200m.litertlm",
+    "path": "models/proofread_quant_200m.litertlm",
+    "bytes": 117587968,
+    "sha256": "2caa317d5a6f951af6e437edce3bb3a9fdedc85a7a8c2a8fcaec96318d7708cc"
+  },
+  "text_summarizer": {
+    "url": "https://storage.googleapis.com/mediapipe-models/text_summarizer/200m/latest/summarization_quant_200m_2modes.litertlm",
+    "path": "models/summarization_quant_200m_2modes.litertlm",
+    "bytes": 117587968,
+    "sha256": "8b2d4ef09236adb9ead3127325526ba1aa5a59feb7c5de2d3f5958f27479de59"
+  },
+  "face_detector": {
+    "url": "https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/latest/blaze_face_short_range.tflite",
+    "path": "models/blaze_face_short_range.tflite",
+    "bytes": 229746,
+    "sha256": "b4578f35940bf5a1a655214a1cce5cab13eba73c1297cd78e1a04c2380b0152f"
+  },
+  "gesture_recognizer": {
+    "url": "https://storage.googleapis.com/mediapipe-models/gesture_recognizer/gesture_recognizer/float16/latest/gesture_recognizer.task",
+    "path": "models/gesture_recognizer.task",
+    "bytes": 8373440,
+    "sha256": "97952348cf6a6a4915c2ea1496b4b37ebabc50cbbf80571435643c455f2b0482"
+  },
+  "hand_landmarker": {
+    "url": "https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/latest/hand_landmarker.task",
+    "path": "models/hand_landmarker.task",
+    "bytes": 7819105,
+    "sha256": "fbc2a30080c3c557093b5ddfc334698132eb341044ccee322ccf8bcf3607cde1"
+  },
+  "holistic_landmarker": {
+    "url": "https://storage.googleapis.com/mediapipe-models/holistic_landmarker/holistic_landmarker/float16/latest/holistic_landmarker.task",
+    "path": "models/holistic_landmarker.task",
+    "bytes": 13683609,
+    "sha256": "e2dab61191e2dcd0a15f943d8e3ed1dce13c82dfa597b9dd39f562975a50c3f8"
+  },
+  "image_classifier": {
+    "url": "https://storage.googleapis.com/mediapipe-models/image_classifier/efficientnet_lite0/int8/latest/efficientnet_lite0.tflite",
+    "path": "models/efficientnet_lite0.tflite",
+    "bytes": 5434517,
+    "sha256": "bc2ffe19c1118de0c0c2a9088992da5589722656e0fba81421385300a4a34b16"
+  },
+  "image_embedder": {
+    "url": "https://storage.googleapis.com/mediapipe-models/image_embedder/mobilenet_v3_small/float32/latest/mobilenet_v3_small.tflite",
+    "path": "models/mobilenet_v3_small.tflite",
+    "bytes": 4117670,
+    "sha256": "bbbb4c51a55a53905af1daec995ca1aae355046f8839bb8c9f5ce9271394bc40"
+  },
+  "image_segmenter": {
+    "url": "https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite",
+    "path": "models/selfie_segmenter.tflite",
+    "bytes": 249537,
+    "sha256": "191ac9529ae506ee0beefa6b2c945a172dab9d07d1e802a290a4e4038226658b"
+  },
+  "interactive_segmenter": {
+    "url": "https://storage.googleapis.com/mediapipe-models/interactive_segmenter_v2/magic_touch/int8/latest/interactive_segmentation.task",
+    "path": "models/interactive_segmentation.task",
+    "bytes": 30525312,
+    "sha256": "38431bc66b883404e8397f74c3579404315b9b52b04a46c6346fe906a7309b03"
+  },
+  "object_detector": {
+    "url": "https://storage.googleapis.com/mediapipe-models/object_detector/efficientdet_lite0/int8/latest/efficientdet_lite0.tflite",
+    "path": "models/efficientdet_lite0.tflite",
+    "bytes": 4602795,
+    "sha256": "0720bf247bd76e6594ea28fa9c6f7c5242be774818997dbbeffc4da460c723bb"
+  },
+  "audio_classifier": {
+    "url": "https://storage.googleapis.com/mediapipe-models/audio_classifier/yamnet/float32/latest/yamnet.tflite",
+    "path": "models/yamnet.tflite",
+    "bytes": 4126810,
+    "sha256": "4d8b4a53282dc83ef04e3e7dbc4fbc98082e34e44ed798e16c3a0cdd4c584faf"
+  },
+  "decision_maker": {
+    "url": "https://storage.googleapis.com/mediapipe-models/decision_maker/laya/float32/laya_s256/latest/laya_s256.task",
+    "path": "models/laya_s256.task",
+    "bytes": 678477844,
+    "sha256": "8cb730b89ef99cb5c98cdbc7936de79deab77623ce25dc0031eec9e25c64c24e"
+  },
+  "text_to_speech": {
+    "url": "https://huggingface.co/litert-community/phonon-31m-en/resolve/main/phonon_int8.litertlm",
+    "path": "models/phonon_int8.litertlm",
+    "bytes": 87205888,
+    "sha256": "b33a9a0d65acec36762db38a2bff6d899f4aab34b196bb56d89fab5665eabebe"
+  },
+  "universal_embedder": {
+    "url": "https://huggingface.co/litert-community/embeddinggemma-2-text-270m-litert-lm/resolve/main/embeddinggemma-2-text-270m.litertlm",
+    "path": "models/embeddinggemma-2-text-270m.litertlm",
+    "bytes": 164626432,
+    "sha256": "2d079ee2f6f066b1f368e8d7c819f55214eaef1d0513b312321901f30ab286fb"
+  },
+  "hand_sample": {
+    "url": "https://storage.googleapis.com/mediapipe-assets/thumb_up.jpg",
+    "path": "samples/thumb_up.jpg",
+    "bytes": 80388,
+    "sha256": "5d673c081ab13b8a1812269ff57047066f9c33c07db5f4178089e8cb3fdc0291"
+  },
+  "object_sample": {
+    "url": "https://storage.googleapis.com/mediapipe-tasks/object_detector/cat_and_dog.jpg",
+    "path": "samples/cat_and_dog.jpg",
+    "bytes": 69041,
+    "sha256": "cfa90c34bb93021165e48bd22cfc20dbbb0440ff638a54878939bf30d362e824"
+  }
+}
