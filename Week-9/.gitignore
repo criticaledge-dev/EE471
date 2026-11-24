@@ -1,0 +1,16 @@
+/task-1/output/
+/task-3/output/
+/task-4/output/
+.venv/
+venv/
+.cache/
+models/
+__pycache__/
+*.py[cod]
+*.safetensors
+*.bin
+*.pt
+*.pth
+*.ckpt
+*.avi
+*.mp4

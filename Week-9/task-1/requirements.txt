@@ -1,0 +1,10 @@
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.15.0+cpu
+transformers==5.24.0
+tokenizers==0.23.3
+huggingface-hub==2.4.0
+safetensors==0.8.0
+sentencepiece==0.2.3
+protobuf==7.36.2
+numpy==2.5.5
+Pillow==13.0.0
