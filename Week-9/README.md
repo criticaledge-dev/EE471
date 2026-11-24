@@ -33,21 +33,6 @@ QA karşılaştırması için NER satırını önce çalıştırın. Karşılaş
 
 Doğrulama ortamı Ubuntu’da Python 3.14.4, CPU PyTorch 2.15.0 ve Transformers 5.24.0 kullanır. Ortamı yeniden hazırlamanız gerekirse aynı Ubuntu yorumlayıcısıyla `"$PY" -m pip install -r requirements.txt` çalıştırın. Xet aktarımı zaman aşımına uğrarsa `HF_HUB_DISABLE_XET=1 "$PY" -B prepare_models.py` ile standart HTTP aktarımını deneyin.
 
-Her video için ilgili komutu önceden çalıştırın. İlk 3 saniyede komutu veya girdiyi gösterin. Sonraki 12 saniye içinde sonucu gösterirken aşağıdaki cümleyi okuyun. ASR videosunda ilk 5 saniyede konuşma örneğini dinletin ve sonraki 10 saniyede transkripti gösterin. Windows’tan ViT PNG ve ASR TXT dosyalarını `Week-9\task-1\output\` içinde açabilirsiniz.
-
-| En fazla 15 saniyelik AVI | Ekranda aç | Okunacak cümle |
-|---|---|---|
-| `Task1_sentiment_analysis.avi` | İki cümle ve JSON etiketleri | “Model iki cümlenin duygu etiketini ve skorunu veriyor.” |
-| `Task1_zero_shot_classification.avi` | Berkshire metni, üç aday ve sıralama | “Model Berkshire cümlesini verilen üç konu arasında sıralıyor.” |
-| `Task1_text_generation.avi` | Başlangıç, iki tam cümle ve kelime sayıları | “SmolLM2 aynı başlangıcı 35 kelimeyi aşmayan iki farklı cümleyle tamamlıyor.” |
-| `Task1_fill_mask.avi` | Boşluklu girdi ve tamamlanan cümle | “Model boşluk için bir kelime öneriyor ve onu cümleye yerleştiriyor.” |
-| `Task1_ner.avi` | Nate bağlamı ve varlık aralıkları | “NER kişi, kurum ve konumları metindeki yerleriyle gösteriyor.” |
-| `Task1_question_answering.avi` | Üç cevap ve NER eşleşmeleri | “QA isim, kurum ve şehir cevaplarını bağlamdan çıkarıyor ve NER ile karşılaştırıyoruz.” |
-| `Task1_summarization.avi` | Girdi paragrafı ve gerçek özet | “T5 finans krizi paragrafını daha kısa bir metne dönüştürüyor.” |
-| `Task1_translation.avi` | Terminalde “Ce cours est produit par Hugging Face.” ve İngilizce çıktı | “Marian modeli bu Fransızca cümleyi İngilizceye çeviriyor.” |
-| `Task1_image_classification.avi` | `output/vit-top3.png` | “ViT bu fotoğraf için en yüksek üç ImageNet etiketini ve skorunu gösteriyor.” |
-| `Task1_asr.avi` | Kaynak WAV oynatıcısı ve terminalde transkript | “Whisper kısa WAV kaydındaki konuşmayı yazıya dönüştürüyor.” |
-
 ## 23 Kasım 2026 gerçek model sonuçları
 
 Doğrulama `/home/lenovo/hf-class/.venv/bin/python` ile Ubuntu’da CPU üzerinde ve çevrimdışı gerçekleştirildi. İlk Task 1 çalıştırmasında **10/10 demo geçti** ve `pip check` bağımlılık hatası bulmadı. Çeviri maddesi güncellendiğinde yalnız çeviri demosu yeniden çalıştırıldı.
@@ -85,23 +70,6 @@ Uygulama loopback üzerinde `share=False` ile çalışır. `Ctrl+C` ile durdurab
 
 Task 1’in [kedi ve köpek fotoğrafı](https://storage.googleapis.com/mediapipe-tasks/object_detector/cat_and_dog.jpg) ile [İngilizce WAV örneği](https://storage.googleapis.com/mediapipe-assets/speech_16000_hz_mono.wav), yerel `Week-8/samples/` klasöründe bulunduğunda başlangıçta görünür. Temiz klonda bağlantılardaki dosyaları bilgisayarınıza kaydedip ilgili sekmeden yükleyin. Başlangıçta seçili gelmeleri için `"$PY" -B app.py --photo "/yerel/yol/cat_and_dog.jpg" --wav "/yerel/yol/speech_16000_hz_mono.wav"` komutunu kullanabilirsiniz. WAV oynatıcısındaki Play düğmesi kaynak kaydı çalar. Whisper metin sonucu verir.
 
-### Task3.avi çekim akışı · 4 dakika 45 saniye
-
-| Süre | Ekranda gösterilecek işlem |
-|---|---|
-| 0:00–0:20 | **Sentiment.** İki satırı ve modelin etiket ile skorlarını göster. |
-| 0:20–0:40 | **Zero-shot.** Berkshire metnini, düzenlenebilir adayları ve finance skorunu göster. |
-| 0:40–1:05 | **Generation.** İki tamamlamayı ve her cümlenin kelime sayısını göster. |
-| 1:05–1:20 | **Fill-mask.** `[…]` boşluğunu ve doldurulmuş cümleyi göster. |
-| 1:20–1:40 | **NER.** Nate, kurum adı ve şehir için varlık türlerini göster. |
-| 1:40–2:00 | **QA.** Üç düzenlenebilir soruyu ve bağlamdan çıkarılmış cevapları göster. |
-| 2:00–2:20 | **Summarization.** Özgün paragrafı ve kısaltılmış çıktıyı göster. |
-| 2:20–2:40 | **Translation.** Verilen Fransızca cümleyi çalıştır ve İngilizce sonucu göster. |
-| 2:40–3:00 | **Görsel.** Fotoğrafı ve ViT’nin üç skorunu göster. |
-| 3:00–3:30 | **Ses.** Kısa WAV’ı oynat, sonra Whisper transkriptini göster. |
-| 3:30–4:10 | **OOP kodu.** `inference.py` içindeki `TransformerDemos` ve `serialized` bölümlerini aç. Bir public metodun Task 1 fonksiyonuna nasıl ulaştığını anlat. |
-| 4:10–4:45 | **Gradio bağlantısı.** `app.py` içindeki `build_app`, `bind` ve `launch` çağrılarını göster. Sekme, düğme, sonuç ve ortak kuyruk arasındaki bağlantıyı açıkla. |
-
 Headless tarayıcı kontrolünü tekrarlamak için çalışan uygulamanın yanında ikinci bir Ubuntu terminalinde aşağıdaki komutları kullanın. Playwright yalnız bu kontrol için gerekir.
 
 ```bash
@@ -134,17 +102,5 @@ PY=/home/lenovo/hf-class/.venv/bin/python
 ```
 
 Load & Save, `save_pretrained()` ile modeli ve tokenizer’ı `task-4/output/distilbert-sst2/` dizinine yazar. Ardından ikisini de bu dizinden açıp aynı girdinin token ID’lerini, logitlerini ve sınıf etiketini karşılaştırır. Bu çıktı dizini Git dışında kalır. Diğer dört komut sonuçlarını terminale yazar.
-
-### En fazla 15 saniyelik kayıtlar
-
-Her video için ilgili komutu önceden çalıştırın. İlk 3 saniyede komutu ve girdiyi, kalan 12 saniye içinde sonucu gösterirken aşağıdaki cümleyi okuyun.
-
-| Video | Ekranda göster | Söylenecek cümle |
-|---|---|---|
-| `Task4_load_and_save.avi` | Kayıt dizini, önceki ve sonraki etiket/skor, PASS satırı | “Model ve tokenizer’ı kaydettim. Klasörden yeniden yükleyince aynı girdinin tahmini eşleşti.” |
-| `Task4_encoding_and_decoding.avi` | Kaynak cümle, token ID’leri ve çözülen metin | “Tokenizer cümleyi ID’lere dönüştürüyor ve bunları küçük harfli metne geri çözüyor.” |
-| `Task4_padding.avi` | İki satırın önceki ve sonraki uzunlukları ile attention mask | “Kısa satır batch uzunluğuna tamamlanıyor. Eklenen dolgu konumlarının maskesi sıfır.” |
-| `Task4_truncation.avi` | Token sayıları, 10 token sınırı ve çıkarılan metin | “Özel token ayarı aynı. On token sınırı cümlenin sonundaki bu parçayı çıkarıyor.” |
-| `Task4_special_tokens.avi` | Aynı metnin iki token listesi, `[CLS]` ve `[SEP]` | “Özel token seçeneği açılınca mevcut CLS başa, SEP sona ekleniyor.” |
 
 23 Kasım 2026’da Ubuntu/WSL’de **5/5** demo geçti. Load & Save öncesi ve sonrası `POSITIVE (0.999858)` döndü. Token ID’leri ve logitler de eşleşti. Encoding aynı ID’lere geri döndü. Padding uzunlukları `[4, 8] → [8, 8]` oldu ve dört dolgu konumu sıfırla maskelendi. Truncation, `[CLS]` ve `[SEP]` dahil `19 → 10` token bıraktı. Special Tokens, sözlük boyutu 30.522 kalırken `[CLS]=101` ve `[SEP]=102` eklendiğini doğruladı.
