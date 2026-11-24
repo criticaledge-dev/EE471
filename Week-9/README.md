@@ -22,7 +22,7 @@ Eksik yeni modelleri hazırlamak için `"$PY" -B prepare_models.py` çalıştır
 | Zero-shot · `MoritzLaurer/deberta-v3-xsmall-zeroshot-v1.1-all-33` | `"$PY" -B cli.py zero_shot_classification` | Üç aday ve sıralı skorlar |
 | Generation · `HuggingFaceTB/SmolLM2-360M` | `"$PY" -B cli.py text_generation` | İki tam cümle ve ayrı kelime sayıları |
 | Fill-mask · `distilbert/distilroberta-base` | `"$PY" -B cli.py fill_mask` | Önerilen kelime, doldurulmuş cümle ve skor |
-| NER · `dslim/bert-base-NER` | `"$PY" -B cli.py ner > output/ner.json && cat output/ner.json` | Özgün metindeki varlıklar, türler, karakter aralıkları ve skorlar |
+| NER · `dslim/bert-base-NER` | `"$PY" -B cli.py ner > output/recording/ner.json && cat output/recording/ner.json` | Özgün metindeki varlıklar, türler, karakter aralıkları ve skorlar |
 | QA · `distilbert/distilbert-base-cased-distilled-squad` | `"$PY" -B cli.py question_answering --ner-results output/ner.json` | Üç cevap, çıkarılan aralıklar ve NER ile eşleşme |
 | Summary · `google-t5/t5-small` | `"$PY" -B cli.py summarization` | Tam paragraf ve model özeti |
 | Translation · `Helsinki-NLP/opus-mt-fr-en` | `"$PY" -B cli.py translation` | “Ce cours est produit par Hugging Face.” ve İngilizce çevirisi |
