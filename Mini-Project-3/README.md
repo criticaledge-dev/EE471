@@ -74,11 +74,6 @@ gerçek 512×512 görseli oluşturmadan çekime başlamayın.
 3. Modelin önerdiği promptu görsel açıklamasına yapıştırın. Görsel Üret'e
    basıp yeni görselin panelde göründüğünü doğrulayın.
 
-Demo kaydı bu akışı göstermeli. Kod anlatımında
-`app.py`, `generation.py`, `speech_service.py` ve `static/app.mjs`
-dosyalarını sırayla gösterin. Mikrofon ve WAV dönüştürme kodu
-Mini-Project-2'deki ses akışından uyarlanmıştır.
-
 ## Ses endpoint’i doğrulaması
 
 ```bash
