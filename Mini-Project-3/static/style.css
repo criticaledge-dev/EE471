@@ -1,0 +1,35 @@
+* { box-sizing: border-box; }
+body { margin: 0; padding: 40px 14px; background: #eff4f5; color: #192f37; font: 15px system-ui, sans-serif; }
+.shell { max-width: 640px; margin: auto; padding: clamp(16px, 5vw, 28px); background: white; border: 1px solid #dfe8ea; border-radius: 24px; }
+header, .composer { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+h1 { margin: 4px 0; font-size: 32px; }
+.eyebrow { margin: 0; font-size: 11px; font-weight: 750; color: #146b66; letter-spacing: .05em; }
+.subtitle { font-size: 13px; color: #536a73; margin: 5px 0; }
+.badge { border-radius: 14px; padding: 14px; background: #d9f1ed; color: #146b66; font-weight: 750; }
+h2, label { display: block; font-size: 15px; font-weight: 650; margin: 20px 0 9px; }
+.preview, #history { border: 1px solid #dce8ea; border-radius: 14px; background: #f5f9f9; }
+.preview { min-height: 244px; padding: 14px; display: grid; align-content: end; justify-items: end; gap: 10px; }
+#placeholder { width: 100%; text-align: center; padding: 32px 0 8px; color: #536a73; }
+#placeholder span { font-size: 28px; color: #146b66; display: block; }
+#placeholder strong { color: #192f37; }
+#placeholder p { margin: 4px 0; font-size: 13px; }
+#art { max-width: 100%; max-height: 390px; object-fit: contain; justify-self: center; border-radius: 10px; }
+button, input, textarea { font: inherit; }
+button { background: #12665f; color: white; border: 0; border-radius: 9px; padding: 10px 14px; cursor: pointer; font-weight: 650; }
+button:disabled { opacity: .62; cursor: wait; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid #146b66; outline-offset: 3px; }
+textarea, input { border: 1px solid #cddde0; border-radius: 10px; padding: 10px; color: inherit; }
+textarea { width: 100%; resize: vertical; }
+#history { height: 199px; overflow: auto; padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+#empty-chat { color: #536a73; margin: auto; }
+.bubble { padding: 8px 12px; max-width: 92%; border: 1px solid #e2ebec; border-radius: 10px; background: white; align-self: start; overflow-wrap: anywhere; }
+.bubble.user { align-self: end; background: #ddf1ee; }
+.bubble strong { font-size: 11px; color: #146b66; }
+.bubble p { white-space: pre-wrap; margin: 4px 0; }
+.composer { margin-top: 14px; }
+.composer input { flex: 1; min-width: 0; }
+#mic { width: 48px; height: 43px; padding: 10px; background: #e0f1ef; color: #146b66; }
+#mic.recording { background: #fbe7e5; color: #8b221a; }
+#mic svg { width: 22px; height: 22px; }
+.status { min-height: 0; margin: 6px 0; color: #536a73; font-size: 13px; }
+.status.error { color: #8b221a; }

@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Image &amp; Chat</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script type="module" src="{{ url_for('static', filename='app.mjs') }}"></script>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div><p class="eyebrow">EE471 / MINI PROJECT 03</p><h1>Image &amp; Chat</h1><p class="subtitle">Sohbet et, fikrini bir görsele dönüştür.</p></div>
+      <span class="badge">IC</span>
+    </header>
+    <section aria-labelledby="preview-heading">
+      <h2 id="preview-heading">Üretilen görsel</h2>
+      <form id="image-form">
+        <div class="preview">
+          <div id="placeholder"><span aria-hidden="true">▧</span><strong>Görsel burada görünecek</strong><p>Bir açıklama yaz ve Görsel Üret’e bas.</p></div>
+          <img id="art" alt="Prompttan üretilen görsel" hidden>
+          <button id="generate" type="submit">Görsel Üret</button>
+        </div>
+        <label for="prompt">Görsel açıklaması</label>
+        <textarea id="prompt" maxlength="1000" rows="2" placeholder="Örn. Kuzey ışıkları altında bir deniz feneri…"></textarea>
+        <p id="image-status" class="status" role="status"></p>
+      </form>
+    </section>
+    <section aria-labelledby="chat-heading">
+      <h2 id="chat-heading">Sohbet geçmişi</h2>
+      <div id="history" role="log" aria-live="polite"><p id="empty-chat">Asistandan bir görsel promptu isteyerek başlayabilirsin.</p></div>
+      <form class="composer" id="chat-form">
+        <button id="mic" type="button" aria-label="Mikrofon kaydını başlat" title="Mikrofon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="2" width="6" height="13" rx="3"/><path d="M5 11v1a7 7 0 0 0 14 0v-1M12 19v3m-3 0h6"/></svg>
+        </button>
+        <input id="message" maxlength="2000" aria-label="Mesaj" placeholder="Mesaj yaz veya mikrofona bas…" autocomplete="off">
+        <button id="send" type="submit">Gönder</button>
+      </form>
+      <p class="subtitle">İngilizce konuş. Metin mesaj kutusuna gelir; göndermeden önce düzenleyebilirsin.</p>
+      <p id="chat-status" class="status" role="status"></p>
+      <p id="voice-status" class="status" role="status"></p>
+    </section>
+  </main>
+</body>
+</html>
