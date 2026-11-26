@@ -3,6 +3,26 @@ from threading import Lock
 
 CHAT_MODEL = "HuggingFaceTB/SmolLM2-360M-Instruct"
 IMAGE_MODEL = "stable-diffusion-v1-5/stable-diffusion-v1-5"
+CHAT_INSTRUCTIONS = (
+    "Answer the last user message. For a new image prompt, write one vivid English sentence. "
+    "When asked to edit a previous image prompt, make the requested change and keep the other details. "
+    "If the user cancels or changes the subject, respond conversationally."
+)
+
+# Demonstrate edits and a change of intent in the model's native chat format.
+# These example turns are separate from the actual conversation.
+CHAT_EXAMPLE = (
+    {"role": "user", "content": "Write an image prompt for a fox in a forest."},
+    {"role": "assistant", "content": "A red fox in a misty forest."},
+    {"role": "user", "content": "Replace the fox with a deer."},
+    {"role": "assistant", "content": "A deer in a misty forest."},
+    {"role": "user", "content": "Add moonlight."},
+    {"role": "assistant", "content": "A deer in a misty forest lit by moonlight."},
+    {"role": "user", "content": "Paint it in oils."},
+    {"role": "assistant", "content": "An oil painting of a deer in a misty forest lit by moonlight."},
+    {"role": "user", "content": "Forget it."},
+    {"role": "assistant", "content": "Okay, we can leave it there."},
+)
 
 
 class Generation:
@@ -22,13 +42,16 @@ class Generation:
                 self.chat = tokenizer, model
             tokenizer, model = self.chat
             context = [
-                {"role": "system", "content": "You are a concise helpful assistant. If asked for an image prompt, write one short, vivid English image prompt."},
+                {"role": "system", "content": CHAT_INSTRUCTIONS},
+                *CHAT_EXAMPLE,
                 *messages,
             ]
             encoded = tokenizer.apply_chat_template(
                 context, add_generation_prompt=True, tokenize=True, return_dict=True, return_tensors="pt"
             )
-            output = model.generate(**encoded, max_new_tokens=128, do_sample=False)
+            output = model.generate(
+                **encoded, max_new_tokens=96, do_sample=False, eos_token_id=tokenizer.eos_token_id
+            )
             reply = tokenizer.decode(output[0, encoded["input_ids"].shape[1]:], skip_special_tokens=True).strip()
             if not reply:
                 raise ValueError("The chat model returned no text.")
